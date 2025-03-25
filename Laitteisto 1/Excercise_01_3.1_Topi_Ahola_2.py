@@ -3,7 +3,7 @@ from machine import Pin, ADC
 
 ledi = Pin("LED", Pin.OUT)
 ledi.value(1) #Testataan ledin toiminta
-adc = ADC(Pin(27))
+adc = ADC(Pin(27, Pin.PULL_DOWN))
 
 while True:
     #Viive millisekunteina 0-1000ms    
