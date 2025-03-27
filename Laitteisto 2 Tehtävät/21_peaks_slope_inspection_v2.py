@@ -35,25 +35,28 @@ for point in range(1,len(data)):
     delta = data[point]-data[point-1]
     print(data[point], data[point-1], delta)
     deltas.append(delta)
-    
+treshhold = ((max(data)+min(data))/2)
+print("Treshhold:",treshhold)
+
 for index in range(1,len(deltas)):
-    if deltas[index] > 0 and deltas[index-1] > 0:
-        pass
-    elif deltas[index] >= 0 and deltas[index-1] < 0:
-        #its a valley!
-        valleys.append([index-1, data[index-1]])
-    elif deltas[index] < 0 and deltas[index-1] < 0:
-        pass
-    elif deltas[index] <= 0 and deltas[index-1] > 0:        
-        #its a peak!
-        peaks.append([index-1, data[index-1]])     
-    
-    elif deltas[index] == 0 and deltas[index-1] == 0:
-         pass
+    if data[index] > treshhold:
+        if deltas[index] >= 0 and deltas[index-1] >= 0:
+            pass
+        elif deltas[index] >= 0 and deltas[index-1] < 0:
+            #its a valley!
+            valleys.append([index-1, data[index-1]])
+        elif deltas[index] < 0 and deltas[index-1] < 0:
+            pass
+        elif deltas[index] < 0 and deltas[index-1] >= 0:        
+            #its a peak!
+            peaks.append([index-1, data[index-1]])     
         
-    else:
-        pass
-        print("its a me mario!")
+        #elif deltas[index] == 0 and deltas[index-1] == 0:
+         #    pass
+            
+        else:
+            pass
+            print("its a me mario!")
 
 
 print("Peaks:", peaks)
