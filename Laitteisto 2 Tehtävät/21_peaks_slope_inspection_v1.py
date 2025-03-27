@@ -35,21 +35,25 @@ for point in range(1,len(data)):
     delta = data[point]-data[point-1]
     print(data[point], data[point-1], delta)
     deltas.append(delta)
-    
 for index in range(1,len(deltas)):
-    if deltas[index] > 0 and deltas[index-1] > 0:
+    if deltas[index] > 0 and deltas[index-1] >= 0:
         pass
-    elif deltas[index] >= 0 and deltas[index-1] < 0:
+    elif deltas[index] > 0 and deltas[index-1] <= 0:
         #its a valley!
         valleys.append([index-1, data[index-1]])
-    elif deltas[index] < 0 and deltas[index-1] < 0:
+    elif deltas[index] < 0 and deltas[index-1] <= 0:
         pass
-    elif deltas[index] <= 0 and deltas[index-1] > 0:        
+    elif deltas[index] < 0 and deltas[index-1] >= 0:        
         #its a peak!
-        peaks.append([index-1, data[index-1]])     
-    
+        peaks.append([index-1, data[index-1]])
     elif deltas[index] == 0 and deltas[index-1] == 0:
-         pass
+        if index >= 2:
+            if deltas[index-2] > 0:
+                peaks.append([index-1, data[index-1]])
+            elif deltas[index-2] < 0:
+                valleys.append([index-1, data[index-1]])
+        else:
+            pass
         
     else:
         pass
@@ -65,8 +69,6 @@ for n in range(1,len(peaks)):
     interval = peaks[n][0] - peaks[n-1][0]
     peak_intervals.append(interval)
     peak_intervals_s.append(interval/sample_rate)
-    
-    
 
 
 print("Peak to peak intervals in samples:", peak_intervals)

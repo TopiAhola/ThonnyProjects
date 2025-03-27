@@ -1,0 +1,2 @@
+import ujson
+Muuta dict json muotoon: message.json()

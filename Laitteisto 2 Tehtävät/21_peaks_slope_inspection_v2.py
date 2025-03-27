@@ -65,11 +65,10 @@ for n in range(1,len(peaks)):
     interval = peaks[n][0] - peaks[n-1][0]
     peak_intervals.append(interval)
     peak_intervals_s.append(interval/sample_rate)
-    
-    
 
 
 print("Peak to peak intervals in samples:", peak_intervals)
 print("Peak to peak intervals in seconds:", peak_intervals_s)
 frequency = 1/(sum(peak_intervals_s)/len(peak_intervals_s))
 print("Frequency: ",frequency)
+
