@@ -5,24 +5,22 @@ import time, ujson
 
 def log_data(self):
     data.append(adc1.read_u16())
-    if len(data) > 500:
+    if len(data) > 800:
         timer1.deinit()
 
 
-timer1 = Timer(mode=Timer.PERIODIC, freq=250, callback=log_data) 
+timer1 = Timer(mode=Timer.PERIODIC, freq=200, callback=log_data) 
 #adc0 = ADC(Pin(27, Pin.IN))
-adc1 = ADC(Pin(26, Pin.PULL_DOWN))
+adc1 = ADC(Pin(27))
 
-sample_rate = 250
+sample_rate = 200
 data = []
 
 
 time.sleep(4.5)
 print(data)
-new_data = []
-for n in range(3,len(data)):
-    new_data.append(((data[n]+data[n-1]+data[n-2]+data[n-3])/4))
-    
+new_data = data
+
 
 # #find initial peaks
 # 
@@ -54,37 +52,35 @@ for n in range(3,len(data)):
 #         pass
 #         print("its a me mario!",index,deltas[index],deltas[index-1])
 
-# Toinen peak versio
+### Toinen peak versio
 #find initial peaks
 deltas = []
 peaks = []
 valleys = []
 for point in range(1,len(data)):    
     delta = data[point]-data[point-1]
-    print(data[point], data[point-1], delta)
+    print(data[point]-20000, data[point-1]-20000, delta)
     deltas.append(delta)
 
-for index in range(1,len(deltas)):
-    if index < len(deltas)-100:
-        treshhold = ((max(new_data[index:index+100])+min(new_data[index:index+100]))/2)    
-    if data[index] > treshhold:
-        if deltas[index] >= 0 and deltas[index-1] >= 0:
-            pass
-        elif deltas[index] >= 0 and deltas[index-1] < 0:
-            #its a valley!
-            valleys.append([index-1, data[index-1]])
-        elif deltas[index] < 0 and deltas[index-1] < 0:
-            pass
-        elif deltas[index] < 0 and deltas[index-1] >= 0:        
-            #its a peak!
-            peaks.append([index-1, data[index-1]])     
+
+for index in range(1,len(deltas)): 
+    if deltas[index] >= 0 and deltas[index-1] >= 0:
+        pass
+    elif deltas[index] >= 0 and deltas[index-1] < 0:
+        #its a valley!
+        valleys.append([index-1, data[index-1]])
+    elif deltas[index] < 0 and deltas[index-1] < 0:
+        pass
+    elif deltas[index] < 0 and deltas[index-1] >= 0:        
+        #its a peak!
+        peaks.append([index-1, data[index-1]])     
+    
+    #elif deltas[index] == 0 and deltas[index-1] == 0:
+     #    pass
         
-        #elif deltas[index] == 0 and deltas[index-1] == 0:
-         #    pass
-            
-        else:
-            pass
-            print("its a me mario!")
+    else:
+        pass
+        print("its a me mario!")
 
 
 print("Peaks:", peaks)

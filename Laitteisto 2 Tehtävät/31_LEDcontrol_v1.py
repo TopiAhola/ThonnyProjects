@@ -23,7 +23,7 @@ class Encoder:
         self.a.irq(handler = self.handler, trigger = Pin.IRQ_RISING, hard = True)
 
     def handler(self, pin):
-        print("handler called")
+        #print("handler called")
         if self.b():
             self.fifo.put(-1)
         else:
@@ -39,8 +39,8 @@ led1_on = False
 led1_brightness = 0
 
 while True:
-    time.sleep(0.010)
-
+    time.sleep(0.130)
+    
     enc1_input = 0
     while not enc1.fifo.empty():
         try:
@@ -49,22 +49,26 @@ while True:
             print("Fifo is empty..")
         print(enc1_input)
 
-    if rot_push == 0:
-        time.sleep(0.020)
-        if rot_push == 0 and led1_on:
+    if rot_push.value() == 0:
+        time.sleep(0.050)
+        if rot_push.value() == 0 and led1_on:
+            print("Button")
             led1_on = False
-        elif rot_push == 0 and not led1_on:
+        elif rot_push.value() == 0 and not led1_on:
+            print("Button")
             led1_on = True
         else:
             pass
 
     if led1_on:
-        led1_brightness =+ enc1_input*50
+        led1_brightness = led1_brightness + enc1_input*50
         if led1_brightness > 65535:
             led1_brightness = 65535
         if led1_brightness < 0:
             led1_brightness = 0
         led1.duty_u16(led1_brightness)
+        print(led1_brightness)
     else:
         led1.duty_u16(0)
+    
 
