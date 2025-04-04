@@ -44,12 +44,12 @@ for index in range(1,len(deltas)):
             pass
         elif deltas[index] >= 0 and deltas[index-1] < 0:
             #its a valley!
-            valleys.append([index-1, data[index-1]])
+            valleys.append([index, data[index]])
         elif deltas[index] < 0 and deltas[index-1] < 0:
             pass
         elif deltas[index] < 0 and deltas[index-1] >= 0:        
             #its a peak!
-            peaks.append([index-1, data[index-1]])     
+            peaks.append([index, data[index]])     
         
         #elif deltas[index] == 0 and deltas[index-1] == 0:
          #    pass
