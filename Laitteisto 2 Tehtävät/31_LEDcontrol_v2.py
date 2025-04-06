@@ -13,8 +13,6 @@ LED handling logic. Its purpose is to send turn events to the main program.
 The encoder button must be polled in the main program and filtered for switch bounce. 
 '''
 
-
-
 class Encoder:
     def __init__(self, a, b):
         self.a = a
@@ -32,6 +30,7 @@ class Encoder:
 def button_handler(jotain):
     global button_input
     button_input = True
+
 
 rot_push = Pin(12, Pin.IN, Pin.PULL_UP)
 rota = Pin(10, Pin.IN, Pin.PULL_UP)
