@@ -35,21 +35,24 @@ class Encoder:
             
 class Button:
     def __init__(self, pin):
-        self.previous_press =  Fifo(1, typecode = 'i')
-        self.pressed = Fifo(1, typecode = 'i')
-        self.pin.irq(handler = button_handler, trigger = Pin.IRQ_RISING)
+        self.press_times =  Fifo(30, typecode = 'i')
+        self.pressed = False
+        self.pin = Pin(pin, Pin.IN, Pin.PULL_UP)
+        self.pin.irq(handler = self.button_handler, trigger = Pin.IRQ_FALLING)
         
-    def button_handler(self):
-        current_time = time.ticks_ms()
-        try:
-            previous_time = self.previous_press.get()
-            if time.ticks_diff(current_time,previous_time) < 50:
-                pass
+    def button_handler(self, pin):        
+        current_time = time.ticks_ms()          
+        if not self.press_times.empty():
+            previous_time = self.press_times.get()
+            diff = time.ticks_diff(current_time,previous_time)
+            #print(diff)
+            if diff < 30:                
+                pass                
             else:
-                self.pressed.put(1)
-        except:
-            pass
-        self.previous_press.put(current_time)
+                self.pressed = True
+        else:
+            self.press_times.put(current_time)
+             
 
 
         
@@ -58,30 +61,35 @@ rota = Pin(10, Pin.IN, Pin.PULL_UP)
 rotb = Pin(11, Pin.IN, Pin.PULL_UP)
 enc1 = Encoder(rota, rotb)
 #Encoder push
-rot_push_pin = Pin(12, Pin.IN, Pin.PULL_UP)
-rot_push = Button(rot_push_pin)
+#rot_push_pin = Pin(12, Pin.IN, Pin.PULL_UP)
+rot_push = Button(12)
 
 #Outputs
 class PWM_LED:
-    def __init__(self, name, pin):
-        self = PWM(Pin(pin), freq = 1000, duty_u16 = 0)
-        self.name = name
+    def __init__(self, name, pin):        
+        self.name = name        
         self.state = 0
-        self.text = ""
+        self.text = f"{self.name} - OFF"
+        self.output = PWM(Pin(pin), freq = 1000, duty_u16 = 0)
         
     def toggle(self):
+        print("toggle function")
         if self.state == 0:
+            print("on")
             self.state = 1
-            self.duty_u16(1000)
+            self.output.duty_u16(1000)
             self.text = f"{self.name} - ON"
-        if self.state == 1:
+        elif self.state == 1:
+            print("off")
             self.state = 0
-            self.duty_u16(0)
-            self.text = f"{self.name} - ON"
+            self.output.duty_u16(0)
+            self.text = f"{self.name} - OFF"
+        else:
+            print("wrong state")
 
-led1 = PWM_LED("LED1",22)
-led2 = PWM_LED("LED2",21)
-led3 = PWM_LED("LED3",20)
+led1 = PWM_LED("LED 1",22)
+led2 = PWM_LED("LED 2",21)
+led3 = PWM_LED("LED 3",20)
 
 # Display
 i2c = I2C(1, scl=Pin(15), sda=Pin(14), freq=400000)
@@ -95,7 +103,7 @@ led = [led1, led2, led3]
 while True:
     time.sleep(0.050)
     
-    #inputs   
+    #Rotation input   
     enc1_input = 0 
     while not enc1.fifo.empty():
         try:
@@ -103,28 +111,41 @@ while True:
         except:
             print("Fifo is empty..")
         print(enc1_input)
-        
-    rot_push_input = 0
-    while not rot_push.pressed.empty():
-        rot_push_input = rot_push.pressed.get()
-        print(rot_push_input)
+    
+    # Vanha vetsio 1
+#     rot_push_input = 0
+#     try:
+#         rot_push_input = rot_push.pressed.get()
+#         print(rot_push_input)
+#     except:
+#         print("no button input")
+#         pass
+#     
+#     #Tilapäinen
+#     if rot_push.pin.value() == 0:
+#         time.sleep(0.1)
+#         if rot_push.pin.value() == 0:
+#             rot_push_input = 1
 
-    curosr_pos = cursor_pos + enc1_input
-    if curosr_pos < 0:
-        curosr_pos = 0
-    elif cursor_pos > 3:
-        cursor_pos = 3
+    cursor_pos = cursor_pos + enc1_input
+    if cursor_pos < 0:
+        cursor_pos = 0
+    elif cursor_pos > 2:
+        cursor_pos = 2
     else:
         pass
-
+    #print("cursor:",cursor_pos)
+    
     #LED toggle
-    if rot_push_input == 1:
+    if rot_push.pressed:
         led[cursor_pos].toggle()
+        print(led[cursor_pos],"state:", led[cursor_pos].state)
+    rot_push.pressed = False
 
     #Menu render
     oled.fill(0)
-    oled.text(led1.text,2,0,1)
-    oled.text(led2.text,2,9,1)
-    oled.text(led3.text,2,18,1)
-    oled.text("[    ]",0,9*cursor_pos,1)
+    oled.text(led1.text,8,0,1)
+    oled.text(led2.text,8,9,1)
+    oled.text(led3.text,8,18,1)
+    oled.text("[           ]",0,(9*cursor_pos),1)
     oled.show()
