@@ -17,8 +17,6 @@ from ssd1306 import SSD1306_I2C
 from fifo import Fifo
 import time, micropython
 
-micropython.alloc_emergency_exception_buf(100)
-
 class Encoder:
     def __init__(self, a, b):
         self.a = a

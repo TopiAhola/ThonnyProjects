@@ -24,10 +24,12 @@ class Encoder:
 class Button:
     def __init__(self, pin):
         self.fifo = Fifo(1, typecode='i')
+        self.pin = pin
         self.pin.irq(handler=self.button_handler, trigger=Pin.IRQ_RISING)
 
-    def button_handler(self):
-        self.fifo.put(1)
+    def button_handler(self, pin):
+        if self.fifo.empty():
+            self.fifo.put(1)
 
 
 # Pulse sensor timed interrupt
@@ -44,7 +46,7 @@ class Pulse_measurement:
         # This is a redundant function for now. Unless continuing a measurement is needed.
         self.timer = Timer(mode=Timer.PERIODIC, freq=200, callback=self.log_data)
 
-    def log_data(self):
+    def log_data(self, pin):
         self.fifo.put(adc1.read_u16())
 
     def stop(self):
@@ -66,6 +68,7 @@ class Menu:
         self.state()
 
     def update_cursor(self, len_options):
+        enc1_input = 0
         while not enc1.fifo.empty():
             try:
                 enc1_input = enc1_input + enc1.fifo.get()
@@ -78,21 +81,26 @@ class Menu:
             self.cursor_position = 0
 
 
-    def select_option(self, cursor_position, options):
-        button_input = button.fifo.get()
+    def select_option(self, options):
+        button_input = 0
+        if not button.fifo.empty():
+            button_input = button.fifo.get()
         if button_input:
-            self.state = options[cursor_position]
+            self.state = options[self.cursor_position]
             self.cursor_position = 0
 
     # Render functions to draw menus
     def render_menu(self, header, text_lines, option_lines):
         oled.fill(0)
         oled.text(header, 4, 0, 1)
-        for line in text_lines:
-            oled.text(line, 4, 0, 1)
+        n=1
+        for line in text_lines:            
+            oled.text(line, 4, 9*n, 1)
+            n = n+1
         for line in option_lines:
-            oled.text(line, 4, 0, 1)
-        oled.text("[                  ]",0,9*(1+len(text_lines)+self.cursor_position),1)
+            oled.text(line, 4, 9*n, 1)
+            n = n+1
+        oled.text("[            ]",0,9*(1+len(text_lines)+self.cursor_position),1)
         oled.show()
 
     def render_measurement_screen(self):
@@ -107,7 +115,7 @@ class Menu:
         text_lines: list[str] = ["Welcome","Choose option:"]
         option_lines : list[str] = ["Submenu1", "Submenu2", "default"]
         options = [self.submenu1, self.submenu2, self.default]
-        self.select_option(self.cursor_position, options)
+        self.select_option(options)
         self.update_cursor(len(options))
         self.render_menu(header,text_lines, option_lines)
         time.sleep(self.cycle_time)
@@ -119,7 +127,6 @@ class Menu:
         text_lines: list[str] = ["Choose option:"]
         option_lines: list[str] = ["Submenu1", "Submenu2", "default"]
         options = []
-
         self.select_option(self.cursor_position, options)
         self.update_cursor(len(options))
         self.render_menu(header, text_lines, option_lines)
@@ -170,12 +177,13 @@ class Menu:
         pass
 
     def default(self):
+        print("default menu")
         header: str = "Default Menu"
         text_lines: list[str] = ["Choose option:"]
-        option_lines : list[str] = ["Submenu1", "Submenu2", "default"]
+        option_lines : list[str] = ["none", "none", "default"]
         options = []
 
-        self.select_option(self.cursor_position, options)
+        self.select_option(options)
         self.update_cursor(len(options))
         self.render_menu(header, text_lines, option_lines)
         time.sleep(self.cycle_time)

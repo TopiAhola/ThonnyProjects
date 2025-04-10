@@ -2,18 +2,20 @@ from machine import UART, Pin, I2C, Timer, ADC, PWM
 from ssd1306 import SSD1306_I2C
 from fifo import Fifo
 import time, ujson
+from piotimer import Piotimer
+
 
 def log_data(self):
     data.append(adc1.read_u16())
-    if len(data) > 800:
+    if len(data) > 200:
         timer1.deinit()
 
 
-timer1 = Timer(mode=Timer.PERIODIC, freq=200, callback=log_data) 
+timer1 = Timer(mode=Timer.PERIODIC, freq=50, callback=log_data) 
 #adc0 = ADC(Pin(27, Pin.IN))
-adc1 = ADC(Pin(27))
+adc1 = ADC(1)
 
-sample_rate = 200
+sample_rate = 50
 data = []
 
 
