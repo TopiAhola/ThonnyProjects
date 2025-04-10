@@ -21,7 +21,7 @@ class Encoder:
         self.a = a
         self.b = b
         self.fifo = Fifo(30, typecode = 'i')
-        self.a.irq(handler = self.handler, trigger = Pin.IRQ_RISING, hard = True)
+        self.a.irq(handler = self.handler, trigger = Pin.IRQ_HIGH_LEVEL, hard = True)
 
     def handler(self, pin):
         #print("handler called")
