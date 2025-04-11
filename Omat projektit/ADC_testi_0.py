@@ -17,7 +17,7 @@ class Adc:
 
     def adc_callback(self, tmr):
         self.adc_fifo.put(self.adc.read_u16())
-
+     
 
 def adc_main(pin):
     dmm = Adc(pin)
@@ -25,12 +25,12 @@ def adc_main(pin):
     while True:
         while dmm.adc_fifo.has_data():
             adc_count = dmm.adc_fifo.get()
-            print(adc_count) #adc_count / ((1 << 16) - 1) * 3.3
+            print(adc_count, adc_count / ((1 << 16) - 1) * 3.3)
+            
+            
 
-pin23 = Pin(23,Pin.OUT)
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
- 
-    pin23.value(0)
-    
+     
     adc_main(27)
+  
