@@ -44,7 +44,22 @@ class Kubios:
     def send_request(self, measurement):
         # Forms a MQTT message to publish as request
         message = ujson.dumps(measurement)        
-        self.mqtt_client.publish("kubios-request", message)        
+        self.mqtt_client.publish("kubios-request", message)
+        
+        
+        
+    def send_request_VANHA_VERSIO2(self, id, type, data):
+        # Forms a MQTT message to publish as request
+        message = ujson.dumps({"id": id, "type": type,"data": data,"analysis": { "type": "readiness" }})        
+        self.mqtt_client.publish("kubios-request", message)
+        
+        
+    def send_request_VANHA_VERSIO1(self, message):
+        # Sends a MQTT message. 
+        message_str = str(message)
+        print("Sending:", message_str)
+        self.mqtt_client.publish("kubios-request", message_str)      
+        
         
     
     def response_callback(self, topic, message):
@@ -83,11 +98,12 @@ class Kubios:
                 
             if error_message == "0":
                 attempt = 0
-                print("Waiting response:",attempt)
+                print("attempt:",attempt)
                 while attempt < 4:
                     time.sleep(0.5)
                     if self.check_response():
-                        response = self.get_response()                        
+                        response = self.get_response()
+                        print(response)
                         break
                     else:
                         attempt = attempt +1
@@ -98,7 +114,7 @@ class Kubios:
                     test_bool = True
                 else:
                     error_message = "Kubios response was bad."
-                
+                print(response)
             else:
                 print("Error message not 0")
         except:
@@ -111,18 +127,45 @@ if __name__ == "__main__":
     
     kubios = Kubios()
     kubios.connect()
-    test = kubios.test()
-    print("Kubios working:",test)
+    error = kubios.test()
+    print("Kubios working:",error)
     
     
     from measurement_example import test_measurement
     kubios.send_request(test_measurement)
-    while True:
-        time.sleep(1)
-        if kubios.check_response():
-            break
-               
+    time.sleep(1)
+    kubios.check_response()
+    time.sleep(1)
     return_message = kubios.get_response()
     print("end",return_message)
     
+    
+#     print("start")
+#     while True:
+#         time.sleep(0.1)
+#         
+#         if kubios.check_response():
+#             break
+#         else:
+#             print("Waiting response")
 
+
+# 		VANHA2 testaukseen
+#     id2 = 222
+#     type2 = "PPI"
+#     data2 = [828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812, 812, 756, 820, 812, 800]
+#     kubios.send_request(id2, type2, data2)
+#     time.sleep(1)
+#     kubios.check_response()
+#     time.sleep(1)
+#     return_message = kubios.get_response()
+#     print("end",return_message)
+
+    
+#     print("Yritys2")
+#     kubios.send_request(id2, type2, data2)
+#     time.sleep(1)
+#     kubios.check_response()
+#     return_message = kubios.get_response()
+#     print("end",return_message)
+    
