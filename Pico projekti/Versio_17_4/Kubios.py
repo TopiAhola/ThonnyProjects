@@ -2,8 +2,6 @@ import network, ujson, time
 from umqtt.simple import MQTTClient
 
 
-## Kubios versio 3
-
 class Kubios:
     test_message = '''{ "id": 999,"type": "PPI",
         "data": [828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812, 812, 756, 820, 812, 800],
@@ -115,15 +113,12 @@ if __name__ == "__main__":
     kubios.connect()
     test = kubios.test()
     print("Kubios working:",test)
-
-    test_measurement = {"id": 666,
-                        "type": "PPI",
-                        "data": [828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812, 812, 812,
-                                 756, 820, 812, 800],
-                        "analysis": {"type": "readiness"}}
-
     
-
+    test_measurement = { "id": 666,
+              "type": "PPI",
+                "data": [828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812, 812, 812, 756, 820, 812, 800],
+                "analysis": { "type": "readiness" } }
+    
     kubios.send_request(test_measurement)
     while True:
         time.sleep(1)

@@ -85,7 +85,6 @@ class Display:
         self.state = self.choose
         self.cursor_position = 0
         self.cycle_time = 0.1
-        self.last_measurement = []
         self.h_page = 0        
         self.last_measurement = {}
         self.last_response = {}
@@ -432,11 +431,11 @@ class Display:
         
         oled.fill(0)
         oled.text("Kubios analysis:", 0, 0, 1)
-        oled.text(f"id:"str(self.last_response["id"]), 0, 8, 1)
-        oled.text(f"stress:",str(self.last_response["data"]["analysis"]["stress_index"]), 0, 16, 1)
-        oled.text(f"mean HR:",str(self.last_response["data"]["analysis"]["mean_hr_bpm"]), 0, 24, 1)
-        oled.text(f"p-Age:",str(self.last_response["data"]["analysis"]["physiological_age"]), 0, 32, 1)
-        oled.text(f"Time: {str(self.last_response["data"]["analysis"]["create_timestamp"]), 0, 40, 1)
+        oled.text(f"id: {self.last_response["id"]}", 0, 8, 1)
+        oled.text(f"stress: {self.last_response["data"]["analysis"]["stress_index"]}", 0, 16, 1)
+        oled.text(f"mean HR: {self.last_response["data"]["analysis"]["mean_hr_bpm"]}", 0, 24, 1)
+        oled.text(f"p-Age: {self.last_response["data"]["analysis"]["physiological_age"]}", 0, 32, 1)
+        oled.text(f"Time: {self.last_response["data"]["analysis"]["create_timestamp"]}", 0, 40, 1)
         oled.show()
         
         button_input = button.get()
