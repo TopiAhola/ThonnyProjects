@@ -39,7 +39,7 @@ class Measurement_history:
 class Display:
     # General Class methods:
     def __init__(self):
-        self.state = self.choose
+        self.state = self.starting_logo
         self.cursor_position = 0
         self.cycle_time = 0.1
         self.last_measurement = []
@@ -276,7 +276,8 @@ class Display:
             return_button_input = return_button.get()
             
             if button_input:
-                self.state = self.kubios_menu2
+                self.last_measurement = monitor.measure()
+                self.state = self.main_menu
                 return
             elif rtm_button_input or return_button_input:
                 self.state = self.main_menu
@@ -306,37 +307,51 @@ class Display:
         header: str = "Measure Basic HRV"
         print(header)
         
-        screen_time = 1
-        
-        while True:
-            button_input = button.get()
-            rtm_button_input = rtm_button.get()
-            return_button_input = return_button.get()
-            
-            if button_input:
-                self.state = self.kubios_menu2
-                return
-            elif rtm_button_input or return_button_input:
-                self.state = self.main_menu
-                return
-            
-            oled.fill(0)
-            oled.text("Place your", 0, 0, 1)
-            oled.text("finger on top of", 0, 9, 1)
-            oled.text("the sensor", 0, 18, 1)
-            oled.text("Press button", 0, 36, 1)
-            oled.text("to start!", 0, 45, 1)
-            
-            if screen_time == 1:
-                oled.text("-->", 92, 56, 1)
-                screen_time += 1
-            
-            elif screen_time == 2:
-                oled.text("-->", 104, 56, 1)
-                screen_time -= 1
+        oled.fill(0)
+        oled.text("Place your", 0, 0, 1)
+        oled.text("finger on top of", 0, 9, 1)
+        oled.text("the sensor", 0, 18, 1)
+        oled.text("Press button", 0, 36, 1)
+        oled.text("to start!", 0, 45, 1)      
+        oled.show()
                 
-            oled.show()
-            time.sleep(1)   
+        button_input = button.get()
+        rtm_button_input = rtm_button.get()
+        return_button_input = return_button.get()
+        
+        if button_input:
+            # Mittaa yli 30s dataa ja palauuttaa listan.
+            data = monitor.measure(850)
+            if len(data) > 10:
+                self.last_measurement = { "id": 1,
+          "type": "PPI",
+            "data": data,
+            "analysis": { "type": "readiness" } }
+                self.state = self.kubios_menu1
+            else:
+                self.state = self.measure_basic_menu_error
+            
+        elif rtm_button_input or return_button_input:
+            self.state = self.main_menu
+            
+        time.sleep(self.cycle_time)
+            
+########################################
+    # Measurement Error menu
+    def measure_basic_menu_error(self):
+        header: str = "Measurement error menu"
+        print(header)
+        
+        oled.fill(0)
+        oled.text("Pulse signal was", 0, 16, 1)
+        oled.text("not good enough", 0, 24, 1)
+        oled.show()
+        
+        if button_input or rtm_button_input or return_button_input:
+            self.state = self.main_menu     
+             
+        time.sleep(self.sycle_time)
+        
         
 ########################################
     # Kubios menu
@@ -567,13 +582,21 @@ if kubios.test():
     print("Kubios is working")    
 else:
     print("Kubios is not working!")
-
-#Testidata ulkoisesta tiedostosta:
-from measurement_example import test_measurement
+    
+test_measurement = { "id": 666,
+              "type": "PPI",
+                "data": [828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812, 812, 812, 756, 820, 812, 800],
+                "analysis": { "type": "readiness" } }
 menu.last_measurement = test_measurement
+
+# Pulse monitor
+from hrmonitor import HeartRateMonitor
+monitor = HeartRateMonitor()
+
 
 while True:
     Display.run(menu)
+    
     
     
 
