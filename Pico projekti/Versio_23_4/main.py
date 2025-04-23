@@ -39,11 +39,11 @@ class Measurement_history:
 class Display:
     # General Class methods:
     def __init__(self):
-        self.state = self.starting_logo
+        self.state = self.fast_connect_1
         self.cursor_position = 0
         self.cycle_time = 0.1
         self.last_measurement = []
-        self.h_page = 0        
+        self.h_page = 0
         self.last_measurement = {}
         self.last_response = {}
         self.id = 1
@@ -208,11 +208,17 @@ class Display:
             time.sleep(1)
                 
 ########################################
+    # Starting logo plays during wlan connection.
+    def fast_connect_1(self):
+        kubios.fast_connect_wlan()
+        self.state = self.starting_logo
+
+
     # Starting logo
     def starting_logo(self):
         header: str = "Starting"
         print(header)
-        
+
         message = "HeartBeatZ"
         x = 24 
         y = 28  
@@ -246,6 +252,12 @@ class Display:
             time.sleep(0.15)
             
         time.sleep(1)
+        self.state = self.fast_connect_2
+
+
+    def fast_connect_2(self):
+        print("fast mqtt connection")
+        kubios.fast_connect_mqtt()
         self.state = self.main_menu
             
   
@@ -400,7 +412,7 @@ class Display:
         if button.get() or rtm_button.get() or return_button.get():
             self.state = self.main_menu     
              
-        time.sleep(self.sycle_time)
+        time.sleep(self.cycle_time)
         
         
 ########################################
@@ -625,12 +637,8 @@ return_button = Button(sw0)
 ## Kubios definition:
 from Kubios import Kubios
 kubios = Kubios()
-kubios.connect()
-if kubios.test():
-    print("Kubios is working")    
-else:
-    print("Kubios is not working!")
-    
+
+# Mittauksen oletusarvot:
 test_measurement = { "id": 666,
               "type": "PPI",
                 "data": [828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812, 812, 812, 756, 820, 812, 800],

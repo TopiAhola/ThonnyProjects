@@ -51,7 +51,7 @@ class Kubios:
         self.wlan.connect(SSID, PASSWORD)
         print("WLAN status:", self.wlan.status())
 
-    def fast_connect_kubios(self):
+    def fast_connect_mqtt(self):
         if self.wlan.status() == 3:
             BROKER_IP = "192.168.3.253"
             PORT = 21883
