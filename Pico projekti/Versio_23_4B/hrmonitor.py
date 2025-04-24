@@ -3,6 +3,7 @@ from machine import Pin, ADC, I2C
 from ssd1306 import SSD1306_I2C
 from fifo import Fifo
 from piotimer import Piotimer
+#napit pitää toimia hardware interruptilla
 
 class HeartRateMonitor:
     def __init__(self):
@@ -33,8 +34,6 @@ class HeartRateMonitor:
         self.show_waveform = True
         self.waveform = [self.height // 2] * self.width
 
-        # Piotimer
-        self.timer = Piotimer(freq=100, callback=self.sample)
 
     def sample(self, timer):
         try:
@@ -74,12 +73,11 @@ class HeartRateMonitor:
         self.oled.text(str(self.avg_bpm), 30, 0)
         self.draw_heart(55, 0, size=1, filled=self.beat_detected)
         if self.show_waveform:
-            for x in range(self.width):
-                y = self.waveform[x]
-                if 0 <= y < self.height:
-                    self.oled.pixel(x, y, 1)
-                    if y+1 < self.height:
-                        self.oled.pixel(x, y+1, 1)
+            for x in range(1, self.width):
+                y1 = self.waveform[x - 1]
+                y2 = self.waveform[x]
+                if 0 <= y1 < self.height and 0 <= y2 < self.height:
+                    self.oled.line(x - 1, y1, x, y2, 1)
         self.oled.show()
 
     def button_pressed(self):
@@ -93,7 +91,22 @@ class HeartRateMonitor:
         return False
 
     def measure(self, duration=99999):
+        # Nollataan mittausdata uutta sessiota varten
+        self.bpm_list = []
+        self.intervals = []
+        self.avg_bpm = 0
+        self.last_beat_time = time.ticks_ms()
+        self.beat_detected = False
+        self.waveform = [self.height // 2] * self.width
+        
+        # Piotimer
+        if hasattr(self, "timer") and self.timer:
+            self.timer.deinit()
+        self.timer = Piotimer(freq=100, callback=self.sample)
         print("Mittaus käynnistetty. Paina nappia (SW_1) lopettaaksesi.")
+        
+        #self.oled.fill(0)
+        #self.oled.show()
         
         while True:
             if self.button_pressed():
@@ -151,7 +164,7 @@ class HeartRateMonitor:
                     self.avg_bpm = int(sum(self.bpm_list) / len(self.bpm_list))
 
                 self.update_display()
-                time.sleep(0.01)
+                time.sleep(0.001)
         
         return self.stop_measurement()
 
