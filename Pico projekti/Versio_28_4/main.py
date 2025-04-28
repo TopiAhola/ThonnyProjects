@@ -3,7 +3,7 @@ from ssd1306 import SSD1306_I2C
 from fifo import Fifo
 from umqtt.simple import MQTTClient
 from Button import Encoder, Button
-import safe
+from safe2 import read_and_print_files, save_raw_data
 import time, ujson, network
 
 # Display ASM class
@@ -15,8 +15,21 @@ class Display:
         self.cycle_time = 0.1
         self.h_page = 0
         self.last_measurement = {}
+        self.measurements = {}
+        self.responses = []
         self.last_response = {}
         self.id = 1
+
+    def get_measurements(self):
+        # Tämä funktio formatoi palautusarvot oikein dictiksi.
+        # Asettaan mittauksen id:n määrän perusteella.
+        saved_measurements = read_and_print_files()
+        for line in saved_measurements:
+            dic = ujson.loads(line)
+            self.responses.append(dic["response"])
+        print("Measurements:", self.responses)
+        self.id = len(self.measurements) + 1
+        print("Id set:", self.id)
 
     def run(self):
         self.state()
@@ -297,33 +310,23 @@ class Display:
         oled.text("Press button", 0, 36, 1)
         oled.text("to start!", 0, 45, 1)      
         oled.show()
-                
-        button_input = button.get()
-        rtm_button_input = rtm_button.get()
-        return_button_input = return_button.get()
-        
-        if button_input:
+
+        if button.get():
             # Mittaa yli 30s dataa ja palauuttaa listan.
             data = monitor.measure(850)
             if len(data) > 10:
-                self.last_measurement = { "id": 1,
-          "type": "PPI",
-            "data": data,
-            "analysis": { "type": "readiness" } }
+                self.last_measurement = { "id": self.id,"type": "PPI","data": data,"analysis": { "type": "readiness" } }
                 self.state = self.basic_analysis_menu
             else:
                 self.state = self.measure_basic_menu_error
             
-        elif rtm_button_input or return_button_input:
+        elif rtm_button.get() or return_button.get():
             self.state = self.main_menu
             
         time.sleep(self.cycle_time)
-                        
             
 
 ########################################
-        
-        
 
 # Measure basic HRV menu
     def basic_analysis_menu(self):
@@ -339,8 +342,8 @@ class Display:
             self.state = self.main_menu
 
         time.sleep(self.cycle_time)
-########################################    
-            
+
+########################################
     # Measure basic HRV menu
     def measure_kubios_menu(self):
         header: str = "Measure Kubios HRV"
@@ -386,7 +389,7 @@ class Display:
         
         
 ########################################
-    # Kubios menu
+    # Kubios menu1
     def kubios_menu1(self):
         header: str = "Kubios Menu 1"
         print(header)
@@ -406,7 +409,7 @@ class Display:
         time.sleep(1)
 
 ########################################
-        
+    # Kubios menu2
     def kubios_menu2(self):
         header: str = "Kubios Menu 2"
         print(header)       
@@ -424,6 +427,7 @@ class Display:
                 
         elif kubios.check_response():
             self.last_response = kubios.get_response()
+            self.responses.append(self.last_response)
             self.state = self.show_kubios_result
         else:
             pass
@@ -479,8 +483,6 @@ class Display:
         
 
 ########################################
-
-
     # History menu
     def history_menu(self):
         header: str = "History Menu"
@@ -605,6 +607,9 @@ menu.last_measurement = test_measurement
 # Pulse monitor
 from hrmonitor import HeartRateMonitor
 monitor = HeartRateMonitor()
+
+# Haetaan tallennetut tiedostot:
+menu.get_measurements()
 
 while True:
     Display.run(menu)
