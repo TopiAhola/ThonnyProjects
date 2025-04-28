@@ -1,8 +1,9 @@
-def send_request(self, id="123", type="PPI", data=[]):
-    # Forms a MQTT message to publish as request
-    message = f"{'id': {id}, 'type": {type},"data": {data},"analysis": { "type": "readiness" }}"
+from machine import Pin
+import time
 
-
-    mqtt_client.publish("kubios-request", message)
-
-
+pinni = Pin(6, Pin.IN)
+tim = 0
+while True:
+    print(tim, pinni.value())
+    time.sleep(1)
+    tim = tim +1
