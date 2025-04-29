@@ -18,8 +18,8 @@ class Display:
         self.measurements = {}
         self.responses = {}
         self.last_response = {}
-        self.kubios_strings = []
-        self.id = 1
+        self.kubios_strings = [""]
+        self.id = 0
 
     def get_measurements(self):
         # Tämä funktio formatoi palautusarvot oikein dictiksi.
@@ -31,9 +31,11 @@ class Display:
                 self.responses[dic["response"]["id"]]= dic["response"]
             except:
                 print("No kubios response")
-            self.measurements[dic["measurement"]["id"]] = dic["measurement"]
-            if self.id < dic["measurement"]["id"]:
-                self.id = dic["measurement"]["id"]
+            try:
+                self.measurements[dic["measurement"]["id"]] = dic["measurement"]
+            except:
+                print("No measurement")
+        self.id = len(self.measurements) + 1
 
         print("Measurements:", self.measurements)
         print("Responses:", self.responses)
@@ -471,7 +473,7 @@ class Display:
             oled.fill(0)
             oled.text("Kubios results:", 0, 0, 1)
             n = 0
-            for line in self.kubios_strings[self.cursor_position, self.cursor_position+5]:
+            for line in self.kubios_strings[self.cursor_position: self.cursor_position+5]:
                 oled.text(line, 0, 8+8*n, 1)
                 n = n+1
             oled.show()
@@ -627,11 +629,11 @@ from Kubios import Kubios
 kubios = Kubios()
 
 # Mittauksen oletusarvot:
-test_measurement = { "id": 666,
-              "type": "PPI",
-                "data": [828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812, 812, 812, 756, 820, 812, 800],
-                "analysis": { "type": "readiness" } }
-menu.last_measurement = test_measurement
+# test_measurement = { "id": 666,
+#               "type": "PPI",
+#                 "data": [828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812, 812, 812, 756, 820, 812, 800],
+#                 "analysis": { "type": "readiness" } }
+# menu.last_measurement = test_measurement
 
 # Pulse monitor
 from hrmonitor import HeartRateMonitor
@@ -643,54 +645,54 @@ menu.get_measurements()
 
 
 ## TEstausta varten kubios response:
-global_response = {
-        'id': 6969,
-        'data': {
-            'status': 'ok',
-            'analysis': {
-                'artefact': 100,
-                'mean_rr_ms': 805,
-                'rmssd_ms': 42.90517,
-                'freq_domain': {
-                    'LF_power_prc': 21.00563,
-                    'tot_power': 836.9012,
-                    'HF_peak': 0.1966667,
-                    'LF_power_nu': 21.41622,
-                    'VLF_power': 16.04525,
-                    'LF_peak': 0.15,
-                    'LF_power': 175.7964,
-                    'HF_power_nu': 78.4376,
-                    'VLF_power_prc': 1.917222,
-                    'HF_power': 643.8597,
-                    'HF_power_prc': 76.93377,
-                    'VLF_peak': 0.04,
-                    'LF_HF_power': 0.2730352
-                },
-                'stress_index': 18.45491,
-                'type': 'readiness',
-                'mean_hr_bpm': 74.53416,
-                'version': '1.5.0',
-                'physiological_age': 25,
-                'effective_time': 0,
-                'readiness': 62.5,
-                'pns_index': -0.3011305,
-                'sdnn_ms': 30.65533,
-                'artefact_level': 'VERY LOW',
-                'sd1_ms': 31.17043,
-                'effective_prc': 0,
-                'sd2_ms': 31.7047,
-                'respiratory_rate': None,
-                'create_timestamp': '2025-04-14T06:17:18.111239+00:00',
-                'analysis_segments': {
-                    'analysis_length': [30],
-                    'analysis_start': [0],
-                    'noise_length': [16.1],
-                    'noise_start': [0]
-                },
-                'sns_index': 1.767119
-            }
-        }
-    }
+# global_response = {
+#         'id': 6969,
+#         'data': {
+#             'status': 'ok',
+#             'analysis': {
+#                 'artefact': 100,
+#                 'mean_rr_ms': 805,
+#                 'rmssd_ms': 42.90517,
+#                 'freq_domain': {
+#                     'LF_power_prc': 21.00563,
+#                     'tot_power': 836.9012,
+#                     'HF_peak': 0.1966667,
+#                     'LF_power_nu': 21.41622,
+#                     'VLF_power': 16.04525,
+#                     'LF_peak': 0.15,
+#                     'LF_power': 175.7964,
+#                     'HF_power_nu': 78.4376,
+#                     'VLF_power_prc': 1.917222,
+#                     'HF_power': 643.8597,
+#                     'HF_power_prc': 76.93377,
+#                     'VLF_peak': 0.04,
+#                     'LF_HF_power': 0.2730352
+#                 },
+#                 'stress_index': 18.45491,
+#                 'type': 'readiness',
+#                 'mean_hr_bpm': 74.53416,
+#                 'version': '1.5.0',
+#                 'physiological_age': 25,
+#                 'effective_time': 0,
+#                 'readiness': 62.5,
+#                 'pns_index': -0.3011305,
+#                 'sdnn_ms': 30.65533,
+#                 'artefact_level': 'VERY LOW',
+#                 'sd1_ms': 31.17043,
+#                 'effective_prc': 0,
+#                 'sd2_ms': 31.7047,
+#                 'respiratory_rate': None,
+#                 'create_timestamp': '2025-04-14T06:17:18.111239+00:00',
+#                 'analysis_segments': {
+#                     'analysis_length': [30],
+#                     'analysis_start': [0],
+#                     'noise_length': [16.1],
+#                     'noise_start': [0]
+#                 },
+#                 'sns_index': 1.767119
+#             }
+#         }
+#     }
 
 while True:
     Display.run(menu)

@@ -520,6 +520,9 @@ class Display:
 
 ################################################################################
     # History menu
+     #Measurement history
+     #Kubios history
+     #
     def history_menu(self):
         header: str = "History Menu"
         print(header)
