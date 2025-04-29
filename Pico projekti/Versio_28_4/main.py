@@ -12,6 +12,7 @@ class Display:
     def __init__(self):
         self.state = self.fast_connect_1
         self.cursor_position = 0
+        self.list_position = 0
         self.cycle_time = 0.1
         self.h_page = 0
         self.last_measurement = {}
@@ -71,7 +72,6 @@ class Display:
         if self.cursor_position < 0:
             self.cursor_position = 0
 
-
     def select_option(self, options):
         button_input = button.get()  
         if button_input:
@@ -97,6 +97,11 @@ class Display:
         if rtm_button_input:
             self.update_cursor(0)
             self.state = self.main_menu
+
+    def scroll_list(self, list_len):
+        #scrolls a list
+        pass
+
   
 ################################################################################
     # Tutorial menus
@@ -462,7 +467,7 @@ class Display:
 ########################################
     #Shows kubios response
     def show_kubios_result(self):
-        header: str = "Kubios Result"
+        header: str = "Kubios Response:"
         print(header)
 
         if self.kubios_strings[0] != f"id: {self.id}":
@@ -479,11 +484,28 @@ class Display:
             oled.show()
 
             if button.get() or rtm_button.get() or return_button.get():
-                self.state = self.main_menu
+                self.state = self.kubios_analysis
 
             time.sleep(self.cycle_time)
         else:
             print("Kubios string list error!")
+
+########################################
+# Shows analysis based on kubios response
+    def kubios_analysis(self):
+        header: str = "Kubios Analysis:"
+        print(header)
+
+        oled.fill(0)
+        oled.text("This will show", 0, 0, 1)
+        oled.text("Kubios analysis", 0, 9, 1)
+        oled.text("results.", 0, 18, 1)
+        oled.show()
+
+        if button.get() or rtm_button.get() or return_button.get():
+            self.state = self.main_menu
+
+        time.sleep(self.cycle_time)
 
 ########################################
         
@@ -514,17 +536,62 @@ class Display:
         
 
 ################################################################################
-    # History menu
+    #History menu
     def history_menu(self):
         header: str = "History Menu"
         print(header)
+        text_lines: list[str] = [""]
+        option_lines : list[str] = ["Kubios results","Measurements", "back"]
+        options = [self.kubios_history_menu, self.measurement_history_menu, self.main_menu]
+        time.sleep(self.cycle_time)
+        self.select_option(options)
+        self.update_cursor(len(options))
+        self.render_menu(header,text_lines, option_lines)
+
+########################################
+    #Measurement history
+    def measurement_history_menu(self):
+        header: str = "Measurements"
+        print(header)
+
+        id_list = self.measurements.keys() # ei toimi
+        self.update_cursor(len(id_list))
+        #self.scroll_list()
+        oled.fill(0)
+        oled.text("Measurements:", 0, 0, 1)
+        n = 0
+        for id in range(self.cursor_position, self.cursor_position + 5):
+            oled.text(id_list[str(self.cursor_position)], 0, 8 + 8 * n, 1)
+            n = n + 1
+        oled.show()
+
+
+
+        button_input = button.get()
+        rtm_button_input = rtm_button.get()
+        return_button_input = return_button.get()
+        if button_input:
+            print(self.measurements[self.cursor_position])
+        elif rtm_button_input:
+            pass
+        elif return_button_input:
+            pass
+        else:
+            time.sleep(self.cycle_time)
+
+########################################
+    # Kubios history menu
+    def kubios_history_menu(self):
+        header: str = "History Menu"
+        print(header)
+
         text_lines: list[str] = [""]
         count = self.history.count()
         
         options_per_page = 4
         start_index = self.h_page * options_per_page
         end_index = start_index + options_per_page
-        measurements_on_page = self.history.get_all()[start_index:end_index]
+        measurements_on_page = list(self.responses.values())[start_index:end_index]
 
         if count == 0:
             option_lines = ["No data"]
@@ -557,12 +624,15 @@ class Display:
             self.update_cursor(0)
             self.h_page -= 1
             self.state = self.history_menu
+
+########################################
     
     def show_next_page(self):
         self.h_page += 1
         time.sleep(self.cycle_time)
         self.state = self.history_menu
-        
+
+########################################
     # Measurement
     def measurement(self, data):
         header: str = "Measurement"
