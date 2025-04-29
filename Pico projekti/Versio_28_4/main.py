@@ -16,7 +16,7 @@ class Display:
         self.h_page = 0
         self.last_measurement = {}
         self.measurements = {}
-        self.responses = []
+        self.responses = {}
         self.last_response = {}
         self.id = 1
 
@@ -26,10 +26,18 @@ class Display:
         saved_measurements = read_and_print_files()
         for line in saved_measurements:
             dic = ujson.loads(line)
-            self.responses.append(dic["response"])
-        print("Measurements:", self.responses)
-        self.id = len(self.measurements) + 1
+            try:
+                self.responses[dic["response"]["id"]]= dic["response"]
+            except:
+                print("No kubios response")
+            self.measurements[dic["measurement"]["id"]] = dic["measurement"]
+            if self.id < dic["measurement"]["id"]:
+                self.id = dic["measurement"]["id"]
+
+        print("Measurements:", self.measurements)
+        print("Responses:", self.responses)
         print("Id set:", self.id)
+
 
     def run(self):
         self.state()
@@ -74,8 +82,8 @@ class Display:
             self.update_cursor(0)
             self.state = self.main_menu
   
-########################################
-    # Tutorial choosing page
+################################################################################
+    # Tutorial menus
     def choose(self):
         header: str = "Choose menu"
         print(header)
@@ -190,8 +198,8 @@ class Display:
             oled.show()
             time.sleep(1)
                 
-########################################
-    # Starting logo plays during wlan connection.
+################################################################################
+    # Starting logo plays during wlan connection
     def fast_connect_1(self):
         kubios.fast_connect_wlan()
         self.state = self.starting_logo
@@ -244,8 +252,8 @@ class Display:
         self.state = self.main_menu
             
   
-########################################
-    # Menu states with sleep timers:
+################################################################################
+    # Main menu
     def main_menu(self):
         header: str = "Main Menu"
         print(header)
@@ -257,7 +265,7 @@ class Display:
         self.update_cursor(len(options))
         self.render_menu(header,text_lines, option_lines)
         
-########################################
+################################################################################
     # Measure heart rate menu
     def measure_menu(self):
         header: str = "Measure Heart Rate"
@@ -267,15 +275,11 @@ class Display:
         last_update = time.ticks_ms()
         
         while True:
-            button_input = button.get()
-            rtm_button_input = rtm_button.get()
-            return_button_input = return_button.get()
-            
-            if button_input:
-                self.last_measurement = monitor.measure()
+            if button.get():
+                monitor.measure(999)
                 self.state = self.main_menu
                 return
-            elif rtm_button_input or return_button_input:
+            elif rtm_button.get() or return_button.get():
                 self.state = self.main_menu
                 return
             
@@ -297,7 +301,7 @@ class Display:
             oled.show()
             time.sleep(1)
 
-########################################
+################################################################################
 # Measure basic HRV menu
     def measure_basic_menu(self):
         header: str = "Measure Kubios HRV"
@@ -313,9 +317,12 @@ class Display:
 
         if button.get():
             # Mittaa yli 30s dataa ja palauuttaa listan.
-            data = monitor.measure(850)
+            data = monitor.measure(30)
             if len(data) > 10:
                 self.last_measurement = { "id": self.id,"type": "PPI","data": data,"analysis": { "type": "readiness" } }
+                self.measurements[self.id] = data
+                save_raw_data({},self.last_measurement)
+                self.id = self.id + 1
                 self.state = self.basic_analysis_menu
             else:
                 self.state = self.measure_basic_menu_error
@@ -343,8 +350,8 @@ class Display:
 
         time.sleep(self.cycle_time)
 
-########################################
-    # Measure basic HRV menu
+################################################################################
+    # Measure Kubios menu
     def measure_kubios_menu(self):
         header: str = "Measure Kubios HRV"
         print(header)
@@ -359,9 +366,12 @@ class Display:
 
         if button.get():
             # Mittaa yli 30s dataa ja palauuttaa listan.
-            data = monitor.measure(850)
+            data = monitor.measure(30)
             if len(data) > 10:
                 self.last_measurement = { "id": self.id,"type": "PPI","data": data,"analysis": { "type": "readiness" } }
+                self.measurements[self.id] = data
+                save_raw_data({}, self.last_measurement)
+                self.id = self.id + 1
                 self.state = self.kubios_menu1
             else:
                 self.state = self.measure_basic_menu_error
@@ -389,7 +399,7 @@ class Display:
         
         
 ########################################
-    # Kubios menu1
+    # Kubios menu1 sends Kubios request
     def kubios_menu1(self):
         header: str = "Kubios Menu 1"
         print(header)
@@ -421,13 +431,13 @@ class Display:
         oled.text("to cancel.", 0, 40, 1)
         oled.show()
 
-
         if button.get() or rtm_button.get() or return_button.get():
             self.state = self.main_menu
                 
         elif kubios.check_response():
             self.last_response = kubios.get_response()
-            self.responses.append(self.last_response)
+            self.responses[self.last_response["id"]] = self.last_response
+            save_raw_data(self.last_response, self.measurements[self.last_response["id"]])
             self.state = self.show_kubios_result
         else:
             pass
@@ -435,18 +445,73 @@ class Display:
         time.sleep(1)
 
 ########################################
-        
+    #Shows kubios response
     def show_kubios_result(self):
         header: str = "Kubios Result"
         print(header)
-        
+
+
+    #    f"id: {self.last_response["id"]}", 0, 8, 1)
+    #    oled.text(f"stress: {self.last_response["data"]["analysis"]["stress_index"]}", 0, 16, 1)
+    #    oled.text(f"mean HR: {self.last_response["data"]["analysis"]["mean_hr_bpm"]}", 0, 24, 1)
+    #    oled.text(f"p-Age: {self.last_response["data"]["analysis"]["physiological_age"]}", 0, 32, 1)
+    #    oled.text(f"Time: {self.last_response["data"]["analysis"]["create_timestamp"]}", 0, 40, 1)
+
+
+        lines = [
+            'id',
+            'data',
+            'status',
+            'analysis',
+            'artefact',
+            'mean_rr_ms',
+            'rmssd_ms',
+            'freq_domain',
+            'LF_power_prc',
+            'tot_power',
+            'HF_peak',
+            'LF_power_nu',
+            'VLF_power',
+            'LF_peak',
+            'LF_power',
+            'HF_power_nu',
+            'VLF_power_prc',
+            'HF_power',
+            'HF_power_prc',
+            'VLF_peak',
+            'LF_HF_power',
+            'stress_index',
+            'type',
+            'mean_hr_bpm',
+            'version',
+            'physiological_age',
+            'effective_time',
+            'readiness',
+            'pns_index',
+            'sdnn_ms',
+            'artefact_level',
+            'sd1_ms',
+            'effective_prc',
+            'sd2_ms',
+            'respiratory_rate',
+            'create_timestamp',
+            'analysis_segments',
+            'analysis_length',
+            'analysis_start',
+            'noise_length',
+            'noise_start',
+            'sns_index'
+            ]
+
+
+
+        self.update_cursor(len(lines)-5)
         oled.fill(0)
         oled.text("Kubios analysis:", 0, 0, 1)
-        oled.text(f"id: {self.last_response["id"]}", 0, 8, 1)
-        oled.text(f"stress: {self.last_response["data"]["analysis"]["stress_index"]}", 0, 16, 1)
-        oled.text(f"mean HR: {self.last_response["data"]["analysis"]["mean_hr_bpm"]}", 0, 24, 1)
-        oled.text(f"p-Age: {self.last_response["data"]["analysis"]["physiological_age"]}", 0, 32, 1)
-        oled.text(f"Time: {self.last_response["data"]["analysis"]["create_timestamp"]}", 0, 40, 1)
+        n = 0
+        for line in lines[self.cursor_position, self.cursor_position+5]:
+            oled.text(line, 0, 8+8*n, 1)
+            n = n+1
         oled.show()
 
         if button.get() or rtm_button.get() or return_button.get():
@@ -482,7 +547,7 @@ class Display:
             time.sleep(self.cycle_time)
         
 
-########################################
+################################################################################
     # History menu
     def history_menu(self):
         header: str = "History Menu"

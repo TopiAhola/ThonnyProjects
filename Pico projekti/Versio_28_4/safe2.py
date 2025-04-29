@@ -34,7 +34,7 @@ def save_raw_data(kubios_data, ppi_list):
     # Tallennettava data
     data_to_save = {
         "response": kubios_data,
-        "data": ppi_list
+        "measurement": ppi_list
     }
 
     try:
