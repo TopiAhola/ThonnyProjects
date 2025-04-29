@@ -331,7 +331,7 @@ class Display:
 
         if button.get():
             # Mittaa yli 30s dataa ja palauuttaa listan.
-            data = monitor.measure(30)
+            data = monitor.measure(33)
             if len(data) > 10:
                 self.last_measurement = { "id": self.id,"type": "PPI","data": data,"analysis": { "type": "readiness" } }
                 self.measurements[self.id] = data
@@ -380,7 +380,7 @@ class Display:
 
         if button.get():
             # Mittaa yli 30s dataa ja palauuttaa listan.
-            data = monitor.measure(30)
+            data = monitor.measure(33)
             if len(data) > 10:
                 self.last_measurement = { "id": self.id,"type": "PPI","data": data,"analysis": { "type": "readiness" } }
                 self.measurements[self.id] = data
@@ -418,8 +418,7 @@ class Display:
         header: str = "Kubios Menu 1"
         print(header)
         
-        if kubios.test():    
-        
+        if kubios.test():
             oled.fill(0)
             oled.text("Uploading last", 0, 8, 1)
             oled.text("measurement...", 0, 16, 1)
@@ -447,7 +446,7 @@ class Display:
 
         if button.get() or rtm_button.get() or return_button.get():
             self.state = self.main_menu
-                
+
         elif kubios.check_response():
             self.last_response = kubios.get_response()
             self.responses[self.last_response["id"]] = self.last_response
@@ -640,6 +639,58 @@ monitor = HeartRateMonitor()
 
 # Haetaan tallennetut tiedostot:
 menu.get_measurements()
+
+
+
+## TEstausta varten kubios response:
+global_response = {
+        'id': 6969,
+        'data': {
+            'status': 'ok',
+            'analysis': {
+                'artefact': 100,
+                'mean_rr_ms': 805,
+                'rmssd_ms': 42.90517,
+                'freq_domain': {
+                    'LF_power_prc': 21.00563,
+                    'tot_power': 836.9012,
+                    'HF_peak': 0.1966667,
+                    'LF_power_nu': 21.41622,
+                    'VLF_power': 16.04525,
+                    'LF_peak': 0.15,
+                    'LF_power': 175.7964,
+                    'HF_power_nu': 78.4376,
+                    'VLF_power_prc': 1.917222,
+                    'HF_power': 643.8597,
+                    'HF_power_prc': 76.93377,
+                    'VLF_peak': 0.04,
+                    'LF_HF_power': 0.2730352
+                },
+                'stress_index': 18.45491,
+                'type': 'readiness',
+                'mean_hr_bpm': 74.53416,
+                'version': '1.5.0',
+                'physiological_age': 25,
+                'effective_time': 0,
+                'readiness': 62.5,
+                'pns_index': -0.3011305,
+                'sdnn_ms': 30.65533,
+                'artefact_level': 'VERY LOW',
+                'sd1_ms': 31.17043,
+                'effective_prc': 0,
+                'sd2_ms': 31.7047,
+                'respiratory_rate': None,
+                'create_timestamp': '2025-04-14T06:17:18.111239+00:00',
+                'analysis_segments': {
+                    'analysis_length': [30],
+                    'analysis_start': [0],
+                    'noise_length': [16.1],
+                    'noise_start': [0]
+                },
+                'sns_index': 1.767119
+            }
+        }
+    }
 
 while True:
     Display.run(menu)
