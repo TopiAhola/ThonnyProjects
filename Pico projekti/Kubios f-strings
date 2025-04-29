@@ -1,0 +1,54 @@
+    #    f"id: {self.last_response["id"]}", 0, 8, 1)
+    #    oled.text(f"stress: {self.last_response["data"]["analysis"]["stress_index"]}", 0, 16, 1)
+    #    oled.text(f"mean HR: {self.last_response["data"]["analysis"]["mean_hr_bpm"]}", 0, 24, 1)
+    #    oled.text(f"p-Age: {self.last_response["data"]["analysis"]["physiological_age"]}", 0, 32, 1)
+    #    oled.text(f"Time: {self.last_response["data"]["analysis"]["create_timestamp"]}", 0, 40, 1)
+
+
+
+
+
+lines = [
+            f'id    {self.last_response["id"]}',
+            f'data  {self.last_response["id"]}',
+            f'status    {self.last_response["id"]}',
+            f'analysis  {self.last_response["id"]}',
+            f'artefact  {self.last_response["id"]}',
+            f'mean_rr_ms',
+            f'rmssd_ms',
+            f'freq_domain',
+            f'LF_power_prc',
+            f'tot_power',
+            f'HF_peak',
+            f'LF_power_nu',
+            f'VLF_power',
+            f'LF_peak',
+            f'LF_power',
+            f'HF_power_nu',
+            f'VLF_power_prc',
+            f'HF_power',
+            f'HF_power_prc',
+            f'VLF_peak',
+            f'LF_HF_power',
+            f'stress_index',
+            f'type',
+            f'mean_hr_bpm',
+            f'version',
+            f'physiological_age',
+            f'effective_time',
+            f'readiness',
+            f'pns_index',
+            f'sdnn_ms',
+            f'artefact_level',
+            f'sd1_ms',
+            f'effective_prc',
+            f'sd2_ms',
+            f'respiratory_rate',
+            f'create_timestamp',
+            f'analysis_segments',
+            f'analysis_length',
+            f'analysis_start',
+            f'noise_length',
+            f'noise_start',
+            f'sns_index'
+            ]

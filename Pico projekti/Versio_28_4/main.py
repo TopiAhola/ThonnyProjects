@@ -18,6 +18,7 @@ class Display:
         self.measurements = {}
         self.responses = {}
         self.last_response = {}
+        self.kubios_strings = []
         self.id = 1
 
     def get_measurements(self):
@@ -38,6 +39,19 @@ class Display:
         print("Responses:", self.responses)
         print("Id set:", self.id)
 
+    def response_string(self, response):
+        # Muuttaa kubios responsen listaksi stringejä näyttöä varten
+        list = []
+        for key, value in response.items():
+            if isinstance(value, dict):
+                list.append("")  # Tyhjä rivi alidictien alkuun.
+                list.append(key)
+                sublist = self.response_string(value)
+                for sub in sublist:
+                    list.append(sub)
+            else:
+                list.append(f"{key}: {value}")
+        return list
 
     def run(self):
         self.state()
@@ -450,74 +464,25 @@ class Display:
         header: str = "Kubios Result"
         print(header)
 
+        if self.kubios_strings[0] != f"id: {self.id}":
+            self.kubios_strings = self.response_string(self.last_response)
 
-    #    f"id: {self.last_response["id"]}", 0, 8, 1)
-    #    oled.text(f"stress: {self.last_response["data"]["analysis"]["stress_index"]}", 0, 16, 1)
-    #    oled.text(f"mean HR: {self.last_response["data"]["analysis"]["mean_hr_bpm"]}", 0, 24, 1)
-    #    oled.text(f"p-Age: {self.last_response["data"]["analysis"]["physiological_age"]}", 0, 32, 1)
-    #    oled.text(f"Time: {self.last_response["data"]["analysis"]["create_timestamp"]}", 0, 40, 1)
+        elif self.kubios_strings[0] == f"id: {self.id}":
+            self.update_cursor(len(self.kubios_strings)-5)
+            oled.fill(0)
+            oled.text("Kubios results:", 0, 0, 1)
+            n = 0
+            for line in self.kubios_strings[self.cursor_position, self.cursor_position+5]:
+                oled.text(line, 0, 8+8*n, 1)
+                n = n+1
+            oled.show()
 
+            if button.get() or rtm_button.get() or return_button.get():
+                self.state = self.main_menu
 
-        lines = [
-            'id',
-            'data',
-            'status',
-            'analysis',
-            'artefact',
-            'mean_rr_ms',
-            'rmssd_ms',
-            'freq_domain',
-            'LF_power_prc',
-            'tot_power',
-            'HF_peak',
-            'LF_power_nu',
-            'VLF_power',
-            'LF_peak',
-            'LF_power',
-            'HF_power_nu',
-            'VLF_power_prc',
-            'HF_power',
-            'HF_power_prc',
-            'VLF_peak',
-            'LF_HF_power',
-            'stress_index',
-            'type',
-            'mean_hr_bpm',
-            'version',
-            'physiological_age',
-            'effective_time',
-            'readiness',
-            'pns_index',
-            'sdnn_ms',
-            'artefact_level',
-            'sd1_ms',
-            'effective_prc',
-            'sd2_ms',
-            'respiratory_rate',
-            'create_timestamp',
-            'analysis_segments',
-            'analysis_length',
-            'analysis_start',
-            'noise_length',
-            'noise_start',
-            'sns_index'
-            ]
-
-
-
-        self.update_cursor(len(lines)-5)
-        oled.fill(0)
-        oled.text("Kubios analysis:", 0, 0, 1)
-        n = 0
-        for line in lines[self.cursor_position, self.cursor_position+5]:
-            oled.text(line, 0, 8+8*n, 1)
-            n = n+1
-        oled.show()
-
-        if button.get() or rtm_button.get() or return_button.get():
-            self.state = self.main_menu
-        
-        time.sleep(self.cycle_time)
+            time.sleep(self.cycle_time)
+        else:
+            print("Kubios string list error!")
 
 ########################################
         
