@@ -59,10 +59,10 @@ class Kubios:
             self.mqtt_client.connect(clean_session=True)
             self.mqtt_client.set_callback(self.response_callback)
             self.mqtt_client.subscribe("kubios-response")
-            print("WLAN is connected.")
+            print("Wlan is connected.")
 
         else:
-            print("WLAN is not connected!")
+            print("Wlan is not connected!")
 
 
     def send_request(self, measurement):

@@ -12,7 +12,6 @@ class Display:
     def __init__(self):
         self.state = self.fast_connect_1
         self.cursor_position = 0
-        self.list_position = 0
         self.cycle_time = 0.1
         self.h_page = 0
         self.last_measurement = {}
@@ -20,7 +19,7 @@ class Display:
         self.responses = {}
         self.last_response = {}
         self.kubios_strings = [""]
-        self.id = 0
+        self.id = 6969
 
     def get_measurements(self):
         # Tämä funktio formatoi palautusarvot oikein dictiksi.
@@ -35,8 +34,9 @@ class Display:
             try:
                 self.measurements[dic["measurement"]["id"]] = dic["measurement"]
             except:
-                print("No measurement")
-        self.id = len(self.measurements) + 1
+                print("get_measurement error")
+            if self.id < int(dic["measurement"]["id"]):
+                self.id = int(dic["measurement"]["id"])
 
         print("Measurements:", self.measurements)
         print("Responses:", self.responses)
@@ -72,6 +72,7 @@ class Display:
         if self.cursor_position < 0:
             self.cursor_position = 0
 
+
     def select_option(self, options):
         button_input = button.get()  
         if button_input:
@@ -97,33 +98,6 @@ class Display:
         if rtm_button_input:
             self.update_cursor(0)
             self.state = self.main_menu
-
-    def scroll_list(self, list):
-        #scrolls a list. Alternative to update_cursor.
-        visible_lines = 6
-        first_line = 0
-        last_line = 0
-        len_list = len(list)
-        enc1_input = 0
-        while not enc1.fifo.empty():
-            try:
-                enc1_input = enc1_input + enc1.fifo.get()
-            except:
-                print("Fifo is empty..")
-        self.cursor_position = self.cursor_position + enc1_input
-        if self.cursor_position > len(list) -visible_lines:
-            first_line = list[len_list-visible_lines]
-            last_line = list[len_list]
-        elif self.cursor_position < visible_lines:
-
-        if self.cursor_position > len_list-1:
-            self.cursor_position = len_list-1
-        if self.cursor_position < 0:
-            self.cursor_position = 0
-
-    def render_list(self, mitä_tähän_laitetaan):
-        self.list_position
-        self.cursor_position
   
 ################################################################################
     # Tutorial menus
@@ -414,7 +388,7 @@ class Display:
                 self.last_measurement = { "id": self.id,"type": "PPI","data": data,"analysis": { "type": "readiness" } }
                 self.measurements[self.id] = data
                 save_raw_data({}, self.last_measurement)
-                self.id = self.id + 1
+                #self.id = self.id + 1
                 self.state = self.kubios_menu1
             else:
                 self.state = self.measure_basic_menu_error
@@ -447,12 +421,13 @@ class Display:
         header: str = "Kubios Menu 1"
         print(header)
         
-        if kubios.test():
+        # if kubios.test():
+        if True:
             oled.fill(0)
             oled.text("Uploading last", 0, 8, 1)
             oled.text("measurement...", 0, 16, 1)
             oled.show()
-            kubios.send_request(self.last_measurement)
+            #kubios.send_request(self.last_measurement)
             self.state = self.kubios_menu2        
         
         else:            
@@ -476,8 +451,11 @@ class Display:
         if button.get() or rtm_button.get() or return_button.get():
             self.state = self.main_menu
 
-        elif kubios.check_response():
-            self.last_response = kubios.get_response()
+        # elif kubios.check_response():
+        elif True:
+            global global_response
+            self.last_response = global_response
+
             self.responses[self.last_response["id"]] = self.last_response
             save_raw_data(self.last_response, self.measurements[self.last_response["id"]])
             self.state = self.show_kubios_result
@@ -489,7 +467,7 @@ class Display:
 ########################################
     #Shows kubios response
     def show_kubios_result(self):
-        header: str = "Kubios Response:"
+        header: str = "Kubios Result"
         print(header)
 
         if self.kubios_strings[0] != f"id: {self.id}":
@@ -506,28 +484,11 @@ class Display:
             oled.show()
 
             if button.get() or rtm_button.get() or return_button.get():
-                self.state = self.kubios_analysis
+                self.state = self.main_menu
 
             time.sleep(self.cycle_time)
         else:
             print("Kubios string list error!")
-
-########################################
-# Shows analysis based on kubios response
-    def kubios_analysis(self):
-        header: str = "Kubios Analysis:"
-        print(header)
-
-        oled.fill(0)
-        oled.text("This will show", 0, 0, 1)
-        oled.text("Kubios analysis", 0, 9, 1)
-        oled.text("results.", 0, 18, 1)
-        oled.show()
-
-        if button.get() or rtm_button.get() or return_button.get():
-            self.state = self.main_menu
-
-        time.sleep(self.cycle_time)
 
 ########################################
         
@@ -558,62 +519,20 @@ class Display:
         
 
 ################################################################################
-    #History menu
+    # History menu
+     #Measurement history
+     #Kubios history
+     #
     def history_menu(self):
         header: str = "History Menu"
         print(header)
-        text_lines: list[str] = [""]
-        option_lines : list[str] = ["Kubios results","Measurements", "back"]
-        options = [self.kubios_history_menu, self.measurement_history_menu, self.main_menu]
-        time.sleep(self.cycle_time)
-        self.select_option(options)
-        self.update_cursor(len(options))
-        self.render_menu(header,text_lines, option_lines)
-
-########################################
-    #Measurement history
-    def measurement_history_menu(self):
-        header: str = "Measurements"
-        print(header)
-
-        id_list = self.measurements.keys() # ei toimi
-        # self.update_cursor(len(id_list))
-        self.scroll_list()
-        oled.fill(0)
-        oled.text("Measurements:", 0, 0, 1)
-        n = 0
-        for id in range(self.cursor_position, self.cursor_position + 5):
-            oled.text(id_list[str(self.cursor_position)], 0, 8 + 8 * n, 1)
-            n = n + 1
-        oled.show()
-
-
-
-        button_input = button.get()
-        rtm_button_input = rtm_button.get()
-        return_button_input = return_button.get()
-        if button_input:
-            print(self.measurements[self.cursor_position])
-        elif rtm_button_input:
-            pass
-        elif return_button_input:
-            pass
-        else:
-            time.sleep(self.cycle_time)
-
-########################################
-    # Kubios history menu
-    def kubios_history_menu(self):
-        header: str = "History Menu"
-        print(header)
-
         text_lines: list[str] = [""]
         count = self.history.count()
         
         options_per_page = 4
         start_index = self.h_page * options_per_page
         end_index = start_index + options_per_page
-        measurements_on_page = list(self.responses.values())[start_index:end_index]
+        measurements_on_page = self.history.get_all()[start_index:end_index]
 
         if count == 0:
             option_lines = ["No data"]
@@ -646,15 +565,12 @@ class Display:
             self.update_cursor(0)
             self.h_page -= 1
             self.state = self.history_menu
-
-########################################
     
     def show_next_page(self):
         self.h_page += 1
         time.sleep(self.cycle_time)
         self.state = self.history_menu
-
-########################################
+        
     # Measurement
     def measurement(self, data):
         header: str = "Measurement"
@@ -721,11 +637,12 @@ from Kubios import Kubios
 kubios = Kubios()
 
 # Mittauksen oletusarvot:
-# test_measurement = { "id": 666,
-#               "type": "PPI",
-#                 "data": [828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812, 812, 812, 756, 820, 812, 800],
-#                 "analysis": { "type": "readiness" } }
-# menu.last_measurement = test_measurement
+test_measurement = { "id": 6969,
+              "type": "PPI",
+                "data": [828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812, 812, 812, 756, 820, 812, 800],
+                "analysis": { "type": "readiness" } }
+
+menu.last_measurement = test_measurement
 
 # Pulse monitor
 from hrmonitor import HeartRateMonitor
@@ -737,54 +654,54 @@ menu.get_measurements()
 
 
 ## TEstausta varten kubios response:
-# global_response = {
-#         'id': 6969,
-#         'data': {
-#             'status': 'ok',
-#             'analysis': {
-#                 'artefact': 100,
-#                 'mean_rr_ms': 805,
-#                 'rmssd_ms': 42.90517,
-#                 'freq_domain': {
-#                     'LF_power_prc': 21.00563,
-#                     'tot_power': 836.9012,
-#                     'HF_peak': 0.1966667,
-#                     'LF_power_nu': 21.41622,
-#                     'VLF_power': 16.04525,
-#                     'LF_peak': 0.15,
-#                     'LF_power': 175.7964,
-#                     'HF_power_nu': 78.4376,
-#                     'VLF_power_prc': 1.917222,
-#                     'HF_power': 643.8597,
-#                     'HF_power_prc': 76.93377,
-#                     'VLF_peak': 0.04,
-#                     'LF_HF_power': 0.2730352
-#                 },
-#                 'stress_index': 18.45491,
-#                 'type': 'readiness',
-#                 'mean_hr_bpm': 74.53416,
-#                 'version': '1.5.0',
-#                 'physiological_age': 25,
-#                 'effective_time': 0,
-#                 'readiness': 62.5,
-#                 'pns_index': -0.3011305,
-#                 'sdnn_ms': 30.65533,
-#                 'artefact_level': 'VERY LOW',
-#                 'sd1_ms': 31.17043,
-#                 'effective_prc': 0,
-#                 'sd2_ms': 31.7047,
-#                 'respiratory_rate': None,
-#                 'create_timestamp': '2025-04-14T06:17:18.111239+00:00',
-#                 'analysis_segments': {
-#                     'analysis_length': [30],
-#                     'analysis_start': [0],
-#                     'noise_length': [16.1],
-#                     'noise_start': [0]
-#                 },
-#                 'sns_index': 1.767119
-#             }
-#         }
-#     }
+global_response = {
+        'id': 6969,
+        'data': {
+            'status': 'ok',
+            'analysis': {
+                'artefact': 100,
+                'mean_rr_ms': 805,
+                'rmssd_ms': 42.90517,
+                'freq_domain': {
+                    'LF_power_prc': 21.00563,
+                    'tot_power': 836.9012,
+                    'HF_peak': 0.1966667,
+                    'LF_power_nu': 21.41622,
+                    'VLF_power': 16.04525,
+                    'LF_peak': 0.15,
+                    'LF_power': 175.7964,
+                    'HF_power_nu': 78.4376,
+                    'VLF_power_prc': 1.917222,
+                    'HF_power': 643.8597,
+                    'HF_power_prc': 76.93377,
+                    'VLF_peak': 0.04,
+                    'LF_HF_power': 0.2730352
+                },
+                'stress_index': 18.45491,
+                'type': 'readiness',
+                'mean_hr_bpm': 74.53416,
+                'version': '1.5.0',
+                'physiological_age': 25,
+                'effective_time': 0,
+                'readiness': 62.5,
+                'pns_index': -0.3011305,
+                'sdnn_ms': 30.65533,
+                'artefact_level': 'VERY LOW',
+                'sd1_ms': 31.17043,
+                'effective_prc': 0,
+                'sd2_ms': 31.7047,
+                'respiratory_rate': None,
+                'create_timestamp': '2025-04-14T06:17:18.111239+00:00',
+                'analysis_segments': {
+                    'analysis_length': [30],
+                    'analysis_start': [0],
+                    'noise_length': [16.1],
+                    'noise_start': [0]
+                },
+                'sns_index': 1.767119
+            }
+        }
+    }
 
 while True:
     Display.run(menu)

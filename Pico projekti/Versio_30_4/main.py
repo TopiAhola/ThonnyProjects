@@ -98,12 +98,15 @@ class Display:
             self.update_cursor(0)
             self.state = self.main_menu
 
-    def scroll_list(self, list):
+    def scroll_list(self, id_list, list_name = ""):
         #scrolls a list. Alternative to update_cursor.
-        visible_lines = 6
-        first_line = 0
-        last_line = 0
-        len_list = len(list)
+        visible_lines = 5
+        first_index = 0
+        last_index = 0
+        len_list = len(id_list)
+        while len(id_list) <= visible_lines:
+            id_list.append("")
+
         enc1_input = 0
         while not enc1.fifo.empty():
             try:
@@ -111,19 +114,56 @@ class Display:
             except:
                 print("Fifo is empty..")
         self.cursor_position = self.cursor_position + enc1_input
-        if self.cursor_position > len(list) -visible_lines:
-            first_line = list[len_list-visible_lines]
-            last_line = list[len_list]
+        if self.cursor_position >= len(id_list)-visible_lines-1:
+            first_index = len_list-visible_lines-1
+            last_index = len_list-1
         elif self.cursor_position < visible_lines:
+            first_index = 0
+            last_index = visible_lines-1
+        else:
+            first_index = self.cursor_position -2
+            last_index = self.cursor_position +2
+            
+
+        self.list_position = first_index
 
         if self.cursor_position > len_list-1:
             self.cursor_position = len_list-1
         if self.cursor_position < 0:
             self.cursor_position = 0
 
-    def render_list(self, mitä_tähän_laitetaan):
-        self.list_position
-        self.cursor_position
+        self.render_list(id_list, first_index, last_index)
+        
+
+
+    def render_list(self, id_list, first_index, last_index, list_name = "List name"):
+        # a separate listdrawing function
+        print("render_list:", id_list,self.cursor_position)
+        oled.fill(0)
+        oled.text(list_name,0,0,1)
+        n = 1
+        for ind in range(first_index, last_index+1):
+            oled.text(f"{id_list[ind]}", 8, 8 * n, 1)
+            n = n + 1
+        oled.text(">", 0, 8 * (1 +self.cursor_position-first_index), 1)
+        oled.show()
+
+
+
+
+    def hrv_analysis(self, data_list):
+        local_analysis: dict = {}
+        '''
+        local_analysis["time"], 0, 0, 1)
+        f"Mean HR: {local_analysis['mean_hr']}", 0, 9, 1)
+        f"Mean PPI: {local_analysis['mean_ppi']}", 0, 18, 1)
+        f"RMSSD: {local_analysis['rmssd']}", 0, 27, 1)
+        f"SDNN: {local_analysis['sdnn']}", 0, 36, 1)
+        f"SNS: {local_analysis['sns']}", 0, 45, 1)
+        f"PNS: {local_analysis['pns']}", 0, 54, 1)
+        '''
+        return local_analysis
+
   
 ################################################################################
     # Tutorial menus
@@ -360,8 +400,8 @@ class Display:
 
         if button.get():
             # Mittaa yli 30s dataa ja palauuttaa listan.
-            data = monitor.measure(33)
-            if len(data) > 10:
+            data = monitor.measure(3)
+            if len(data) >= 0:
                 self.last_measurement = { "id": self.id,"type": "PPI","data": data,"analysis": { "type": "readiness" } }
                 self.measurements[self.id] = data
                 save_raw_data({},self.last_measurement)
@@ -409,8 +449,8 @@ class Display:
 
         if button.get():
             # Mittaa yli 30s dataa ja palauuttaa listan.
-            data = monitor.measure(33)
-            if len(data) > 10:
+            data = monitor.measure(3)
+            if len(data) >= 0:
                 self.last_measurement = { "id": self.id,"type": "PPI","data": data,"analysis": { "type": "readiness" } }
                 self.measurements[self.id] = data
                 save_raw_data({}, self.last_measurement)
@@ -575,77 +615,50 @@ class Display:
     def measurement_history_menu(self):
         header: str = "Measurements"
         print(header)
-
-        id_list = self.measurements.keys() # ei toimi
-        # self.update_cursor(len(id_list))
-        self.scroll_list()
-        oled.fill(0)
-        oled.text("Measurements:", 0, 0, 1)
-        n = 0
-        for id in range(self.cursor_position, self.cursor_position + 5):
-            oled.text(id_list[str(self.cursor_position)], 0, 8 + 8 * n, 1)
-            n = n + 1
-        oled.show()
-
-
-
+        id_list: list[str] = [""]
+        for key in self.measurements.keys():
+            id_list.append(key)        
+        self.scroll_list(id_list, "Measurements")
+    
         button_input = button.get()
         rtm_button_input = rtm_button.get()
         return_button_input = return_button.get()
         if button_input:
-            print(self.measurements[self.cursor_position])
+            print(id_list[self.cursor_position])
+            self.last_measurement = id_list[self.cursor_position]
+            self
         elif rtm_button_input:
-            pass
+            self.state = self.main_menu
         elif return_button_input:
-            pass
+            self.state = self.history_menu
         else:
             time.sleep(self.cycle_time)
 
 ########################################
     # Kubios history menu
     def kubios_history_menu(self):
-        header: str = "History Menu"
-        print(header)
+        header: str = "Kubios results"
 
-        text_lines: list[str] = [""]
-        count = self.history.count()
-        
-        options_per_page = 4
-        start_index = self.h_page * options_per_page
-        end_index = start_index + options_per_page
-        measurements_on_page = list(self.responses.values())[start_index:end_index]
+        id_list: list[str] = []
+        for key in self.responses.keys():
+            id_list.append(key.tostring())
+        self.scroll_list(id_list, "Kubios results")
 
-        if count == 0:
-            option_lines = ["No data"]
-            options = [lambda: None] # Builds a dummy function that returns nothing
-        else:
-            option_lines = [f"Measurement {start_index + i + 1}" for i in range(len(measurements_on_page))]
-            
-            options = [
-                # Creates list of lambda functions that call 'self.measurement'
-                lambda i=i: self.measurement(self.history.get_measurement(start_index + i))
-                for i in range(len(measurements_on_page))
-            ]
-            
-            if end_index < count:
-                option_lines.append("Next Page")
-                options.append(lambda: self.show_next_page())
-
-        self.render_menu(header, text_lines, option_lines)
-        time.sleep(self.cycle_time)
-        self.select_option(options)
-        self.update_cursor(len(options))
-        
+        button_input = button.get()
         rtm_button_input = rtm_button.get()
         return_button_input = return_button.get()
-        if rtm_button_input:
-            self.update_cursor(0)
+
+        if button_input:
+            print(id_list[self.cursor_position])
+            #self.last_measurement = id_list[self.cursor_position]
+            self.show_measurement(id_list[self.cursor_position])
+        elif rtm_button_input:
             self.state = self.main_menu
-            self.h_page = 0
-        elif return_button_input and self.h_page > 0:
-            self.update_cursor(0)
-            self.h_page -= 1
+        elif return_button_input:
             self.state = self.history_menu
+        else:
+            time.sleep(self.cycle_time)
+
 
 ########################################
     
@@ -656,21 +669,54 @@ class Display:
 
 ########################################
     # Measurement
-    def measurement(self, data):
+    def show_measurement(self, measurement_id):
         header: str = "Measurement"
         print(header)
+        measurement = self.measurements[measurement_id]
+        data = measurement["data"]
+        local_analysis = self.hrv_analysis(data)
+
         oled.fill(0)
-        oled.text(data["time"], 0, 0, 1)
-        oled.text(f"Mean HR: {data['mean_hr']}", 0, 9, 1)
-        oled.text(f"Mean PPI: {data['mean_ppi']}", 0, 18, 1)
-        oled.text(f"RMSSD: {data['rmssd']}", 0, 27, 1)
-        oled.text(f"SDNN: {data['sdnn']}", 0, 36, 1)
-        oled.text(f"SNS: {data['sns']}", 0, 45, 1)
-        oled.text(f"PNS: {data['pns']}", 0, 54, 1)
+        oled.text(local_analysis["time"], 0, 0, 1)
+        oled.text(f"Mean HR: {local_analysis['mean_hr']}", 0, 9, 1)
+        oled.text(f"Mean PPI: {local_analysis['mean_ppi']}", 0, 18, 1)
+        oled.text(f"RMSSD: {local_analysis['rmssd']}", 0, 27, 1)
+        oled.text(f"SDNN: {local_analysis['sdnn']}", 0, 36, 1)
+        oled.text(f"SNS: {local_analysis['sns']}", 0, 45, 1)
+        oled.text(f"PNS: {local_analysis['pns']}", 0, 54, 1)
         oled.show()
         
         time.sleep(self.cycle_time)
         
+        rtm_button_input = rtm_button.get()
+        return_button_input = return_button.get()
+        button_input = button.get()
+        if rtm_button_input:
+            self.update_cursor(0)
+            self.state = self.main_menu
+        elif button_input or return_button_input:
+            self.update_cursor(0)
+            self.state = self.measurement_history_menu
+
+########################################
+    # Measurement
+    def show_response(self, response):
+        header: str = "Measurement"
+        print(header)
+        data = measurement["data"]
+        local_analysis = self.hrv_analysis(data)
+        oled.fill(0)
+        oled.text(local_analysis["time"], 0, 0, 1)
+        oled.text(f"Mean HR: {local_analysis['mean_hr']}", 0, 9, 1)
+        oled.text(f"Mean PPI: {local_analysis['mean_ppi']}", 0, 18, 1)
+        oled.text(f"RMSSD: {local_analysis['rmssd']}", 0, 27, 1)
+        oled.text(f"SDNN: {local_analysis['sdnn']}", 0, 36, 1)
+        oled.text(f"SNS: {local_analysis['sns']}", 0, 45, 1)
+        oled.text(f"PNS: {local_analysis['pns']}", 0, 54, 1)
+        oled.show()
+
+        time.sleep(self.cycle_time)
+
         rtm_button_input = rtm_button.get()
         return_button_input = return_button.get()
         button_input = button.get()
@@ -683,6 +729,7 @@ class Display:
         elif return_button_input:
             self.update_cursor(0)
             self.state = self.history_menu
+
         
 ####################################################################################
 # Main program
