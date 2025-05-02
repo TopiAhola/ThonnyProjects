@@ -4,7 +4,7 @@ from fifo import Fifo
 from umqtt.simple import MQTTClient
 from Button import Encoder, Button
 from safe2 import read_and_print_files, save_raw_data
-import time, ujson, network
+import time, ujson, network, math
 
 # Display ASM class
 class Display:
@@ -22,6 +22,7 @@ class Display:
         self.last_response = {}
         self.kubios_strings = [""]
         self.id = 0
+        self.rtc = object
 
     def get_measurements(self):
         # Tämä funktio formatoi palautusarvot oikein dictiksi.
@@ -108,7 +109,7 @@ class Display:
 
     def scroll_list(self, id_list, list_name = ""):
         #scrolls a list. Alternative to update_cursor.
-        visible_lines = 6
+        visible_lines = 7
         first_index = self.list_position
         last_index = first_index + visible_lines-1
         len_list = len(id_list)
@@ -171,17 +172,29 @@ class Display:
             oled.text(">", 0, 8 * (1 + self.cursor_position - first_index), 1)
             oled.show()
 
+    def hrv_analysis(self, ppi_list):
+        # Mean Heart Rate
+        mean_hr = math.floor((len(ppi_list)) / (sum(ppi_list) / 60000))
 
+        # Mean peak-peak interval
+        mean_ppi = math.floor(sum(ppi_list) / len(ppi_list))
 
-    def hrv_analysis(self, data_list):
-        mean_hr = 0
-        mean_ppi = 1
-        rmssd = 2
-        sdnn = 3
-        sns = 4
-        pns = 5
+        # Root mean square of successive differences (RMSSD):
+        ppi_diff_squares = []
+        for index in range(1, len(ppi_list)):
+            ppi_diff = ppi_list[index] - ppi_list[index - 1]
+            ppi_diff_squares.append(ppi_diff ** 2)
+        mean_ppi_diff_squares = sum(ppi_diff_squares) / len(ppi_diff_squares)
+        rmssd = math.sqrt(mean_ppi_diff_squares)
 
-        return mean_hr,mean_ppi,rmssd,sdnn,sns,pns
+        # standard deviation of ppi:
+        ppi_mean_diff_squares = []
+        for index in range(1, len(ppi_list)):
+            ppi_mean_diff_squares.append((ppi_list[index] - mean_ppi) ** 2)
+        average = sum(ppi_mean_diff_squares) / (len(ppi_mean_diff_squares))
+        sdnn = math.sqrt(average)
+
+        return mean_hr, mean_ppi, rmssd, sdnn
 
 ################################################################################
     # Tutorial menus
@@ -426,7 +439,8 @@ class Display:
                 self.measurements.append(self.last_measurement)
                 save_raw_data({},self.last_measurement)
                 self.id = len(self.measurements)+1
-                self.state = self.basic_analysis_menu
+                self.show_last_measurement()
+                self.state = self.main_menu
             else:
                 self.state = self.measure_basic_menu_error
 
@@ -436,23 +450,36 @@ class Display:
         self.reset_inputs()
         time.sleep(self.cycle_time)
 
-
 ########################################
+# Show basic HRV results
+    def show_last_measurement(self):
+        header: str = "Measurement"
+        print(header)
+        measurement = self.last_measurement
+        mean_hr, mean_ppi, rmssd, sdnn = self.hrv_analysis(measurement["data"])
+        while True:
+            oled.fill(0)
+            oled.text(f"Measurement {measurement["id"]}", 0, 0, 1)
+            oled.text(f"", 0, 9, 1)
+            oled.text(f"Mean HR: {mean_hr} /min", 0, 18, 1)
+            oled.text(f"Mean PPI: {mean_ppi} ms", 0, 27, 1)
+            oled.text(f"RMSSD: {rmssd:5.2f}", 0, 36, 1)
+            oled.text(f"SDNN: {sdnn:5.2f}ms", 0, 45, 1)
+            oled.show()
 
-# Measure basic HRV menu
-    def basic_analysis_menu(self):
-        print("basic analysis TBD")
+            time.sleep(self.cycle_time)
 
-        oled.fill(0)
-        oled.text("This will show", 0, 0, 1)
-        oled.text("local analysis", 0, 9, 1)
-        oled.text("results.", 0, 18, 1)
-        oled.show()
-
-        if button.get() or rtm_button.get() or return_button.get():
-            self.state = self.main_menu
-        self.reset_inputs()
-        time.sleep(self.cycle_time)
+            rtm_button_input = rtm_button.get()
+            return_button_input = return_button.get()
+            button_input = button.get()
+            if rtm_button_input:
+                self.update_cursor(0)
+                self.state = self.main_menu
+                break
+            elif button_input or return_button_input:
+                self.update_cursor(0)
+                self.state = self.measurement_history_menu
+                break
 
 ################################################################################
     # Measure Kubios menu
@@ -703,17 +730,15 @@ class Display:
         header: str = "Measurement"
         print(header)
         measurement = self.measurements[measurement_index]
-        data = measurement["data"]
-        mean_hr, mean_ppi, rmssd, sdnn, sns, pns = self.hrv_analysis(data)
+        mean_hr, mean_ppi, rmssd, sdnn = self.hrv_analysis(measurement["data"])
         while True:
             oled.fill(0)
             oled.text(f"Measurement {measurement["id"]}", 0, 0, 1)
-            oled.text(f"Mean HR: {mean_hr}", 0, 9, 1)
-            oled.text(f"Mean PPI: {mean_ppi}", 0, 18, 1)
-            oled.text(f"RMSSD: {rmssd}", 0, 27, 1)
-            oled.text(f"SDNN: {sdnn}", 0, 36, 1)
-            oled.text(f"SNS: {sns}", 0, 45, 1)
-            oled.text(f"PNS: {pns}", 0, 54, 1)
+            oled.text(f"", 0, 9, 1)
+            oled.text(f"Mean HR: {mean_hr} /min", 0, 18, 1)
+            oled.text(f"Mean PPI: {mean_ppi} ms", 0, 27, 1)
+            oled.text(f"RMSSD: {rmssd:5.2f}", 0, 36, 1)
+            oled.text(f"SDNN: {sdnn:5.2f}ms", 0, 45, 1)
             oled.show()
 
             time.sleep(self.cycle_time)
