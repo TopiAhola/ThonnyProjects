@@ -41,3 +41,6 @@ kubios_strings = [f'LF_HF_power',
 cursor_position = 0
 for line in kubios_strings[cursor_position : cursor_position + 5]:
     print(line)
+
+number = 55
+print(f"{number:04}")
