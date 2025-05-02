@@ -700,7 +700,7 @@ class Display:
             oled.text("measurements.", 0, 18, 1)
             oled.show()
             if button_input or rtm_button_input or return_button_input:
-                self.state = self.history_menu()
+                self.state = self.history_menu
         self.reset_inputs()
         time.sleep(self.cycle_time)
 
