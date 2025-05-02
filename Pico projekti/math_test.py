@@ -1,4 +1,4 @@
-# Sydänmittauksen tulos pitää muotoilla näin:
+import math
 
 test_measurement = { "id": 666,
               "type": "PPI",
@@ -7,30 +7,47 @@ test_measurement = { "id": 666,
 
 
 
-# Kubios esimerkkiviesti:
-message = '''{  "id": 123,
-        "type": "RRI",
-        "data": [
-          828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812,
-          812, 756, 820, 812, 800
-        ],
-        "analysis": { "type": "readiness" }
-      }'''
 
-date_time = self.rtc.datetime() , "datetime":date_time
+def hrv_analysis(ppi_list):
+    #Mean Heart Rate
+    mean_hr = math.floor((len(ppi_list)) / (sum(ppi_list)/60000))
+    
+    #Mean peak-peak interval
+    mean_ppi = math.floor(sum(ppi_list) / len(ppi_list))
+    
+    #Root mean square of successive differences (RMSSD):
+    ppi_diff_squares = []
+    for index in range(1,len(ppi_list)):
+        ppi_diff = ppi_list[index] - ppi_list[index-1]
+        ppi_diff_squares.append(ppi_diff**2)
+    mean_ppi_diff_squares = sum(ppi_diff_squares)/len(ppi_diff_squares)
+    rmssd = math.sqrt(mean_ppi_diff_squares)
+    
+    #standard deviation of ppi:
+    ppi_mean_diff_squares = []
+    for index in range(1,len(ppi_list)):
+        ppi_mean_diff_squares.append((ppi_list[index]-mean_ppi)**2)
+    average = sum(ppi_mean_diff_squares)/(len(ppi_mean_diff_squares))
+    sdnn = math.sqrt(average) 
+    
+    return mean_hr,mean_ppi,rmssd,sdnn
 
-print(self.rtc.datetime())
- #(year, month, day, weekday, hours, minutes, seconds, subseconds)
-time = self.rtc.datetime()
-timezone = 3
-date_time = (time[0],time[1],time[2],time[3],time[4]+timezone,time[5],time[6],time[7])
-print(date_time)
+
+mean_hr,mean_ppi,rmssd,sdnn = hrv_analysis(test_measurement["data"])
+print(mean_hr,mean_ppi,rmssd,sdnn)
 
 
 
-# Kubios vastausviesti esimerkkiviestiin:
-response = 
-{'id': 123,
+#Halutut arvot:
+# mean PPI 		581
+# mean HR   	103
+# RMSSD 38.29
+# SDNN 36.91
+
+
+#Oikeat arvot:
+'''
+response = {'id': 123,
  'data': {'status': 'ok',
           'analysis': {'artefact': 100,
                        'mean_rr_ms': 805,
@@ -68,5 +85,5 @@ response =
                                              'noise_length': [16.1],
                                              'noise_start': [0]}, 
                                              'sns_index': 1.767119}}}
-
-
+                                             
+                    '''
