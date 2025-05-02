@@ -1,10 +1,10 @@
-from machine import UART, Pin, I2C, Timer, ADC, PWM
+from machine import UART, Pin, I2C, Timer, ADC, PWM, RTC
 from ssd1306 import SSD1306_I2C
 from fifo import Fifo
 from umqtt.simple import MQTTClient
 from Button import Encoder, Button
 from safe2 import read_and_print_files, save_raw_data
-import time, ujson, network, math
+import time, ujson, network, math, ntptime
 
 # Display ASM class
 class Display:
@@ -22,7 +22,7 @@ class Display:
         self.last_response = {}
         self.kubios_strings = [""]
         self.id = 0
-        self.rtc = object
+        self.rtc = RTC()
 
     def get_measurements(self):
         # Tämä funktio formatoi palautusarvot oikein dictiksi.
@@ -363,6 +363,19 @@ class Display:
     def fast_connect_2(self):
         print("fast mqtt connection")
         kubios.fast_connect_mqtt()
+        print("set nettime")
+        try:
+            ntptime.settime()
+            #(year, month, day, weekday, hours, minutes, seconds, subseconds)
+            time = self.rtc.datetime()            
+            timezone = 3                   
+            date_time = (time[0],time[1],time[2],time[3],time[4]+timezone,time[5],time[6],time[7])
+            print(date_time)
+            self.rtc.datetime(date_time)
+            print("Time is:",self.rtc.datetime())
+        except:
+            print("Time not set!")
+            self.rtc.datetime()
         self.state = self.main_menu
         self.reset_inputs() #This resets buttons pressed during intro
 
@@ -378,6 +391,7 @@ class Display:
         self.select_option(options)
         self.update_cursor(len(options))
         self.render_menu(header,text_lines, option_lines)
+        
 
 ################################################################################
     # Measure heart rate menu
@@ -419,7 +433,7 @@ class Display:
 ################################################################################
 # Measure basic HRV menu
     def measure_basic_menu(self):
-        header: str = "Measure Kubios HRV"
+        header: str = "Measure basic HRV"
         print(header)
 
         oled.fill(0)
@@ -498,7 +512,7 @@ class Display:
         if button.get():
             data = monitor.measure(33) # Mittaa yli 30s dataa ja palauuttaa listan.
             if len(data) >= 0:
-                self.last_measurement = { "id": self.id,"type": "PPI","data": data,"analysis": { "type": "readiness" } }
+                self.last_measurement = { "id": self.id,"type": "PPI","data": data,"analysis": { "type": "readiness" }}
                 self.measurements.append(self.last_measurement)
                 self.id = len(self.measurements)+1
                 self.state = self.kubios_menu1
@@ -841,16 +855,9 @@ button = Button(rot_push)
 rtm_button = Button(sw2) # return to menu
 return_button = Button(sw0)
 
-## Kubios definition:
+# Kubios definition:
 from Kubios import Kubios
 kubios = Kubios()
-
-# Mittauksen oletusarvot:
-# test_measurement = { "id": 666,
-#               "type": "PPI",
-#                 "data": [828, 836, 852, 760, 800, 796, 856, 824, 808, 776, 724, 816, 800, 812, 812, 812, 812, 756, 820, 812, 800],
-#                 "analysis": { "type": "readiness" } }
-# menu.last_measurement = test_measurement
 
 # Pulse monitor
 from hrmonitor import HeartRateMonitor
@@ -858,58 +865,6 @@ monitor = HeartRateMonitor()
 
 # Haetaan tallennetut tiedostot:
 menu.get_measurements()
-
-
-
-## TEstausta varten kubios response:
-# global_response = {
-#         'id': 6969,
-#         'data': {
-#             'status': 'ok',
-#             'analysis': {
-#                 'artefact': 100,
-#                 'mean_rr_ms': 805,
-#                 'rmssd_ms': 42.90517,
-#                 'freq_domain': {
-#                     'LF_power_prc': 21.00563,
-#                     'tot_power': 836.9012,
-#                     'HF_peak': 0.1966667,
-#                     'LF_power_nu': 21.41622,
-#                     'VLF_power': 16.04525,
-#                     'LF_peak': 0.15,
-#                     'LF_power': 175.7964,
-#                     'HF_power_nu': 78.4376,
-#                     'VLF_power_prc': 1.917222,
-#                     'HF_power': 643.8597,
-#                     'HF_power_prc': 76.93377,
-#                     'VLF_peak': 0.04,
-#                     'LF_HF_power': 0.2730352
-#                 },
-#                 'stress_index': 18.45491,
-#                 'type': 'readiness',
-#                 'mean_hr_bpm': 74.53416,
-#                 'version': '1.5.0',
-#                 'physiological_age': 25,
-#                 'effective_time': 0,
-#                 'readiness': 62.5,
-#                 'pns_index': -0.3011305,
-#                 'sdnn_ms': 30.65533,
-#                 'artefact_level': 'VERY LOW',
-#                 'sd1_ms': 31.17043,
-#                 'effective_prc': 0,
-#                 'sd2_ms': 31.7047,
-#                 'respiratory_rate': None,
-#                 'create_timestamp': '2025-04-14T06:17:18.111239+00:00',
-#                 'analysis_segments': {
-#                     'analysis_length': [30],
-#                     'analysis_start': [0],
-#                     'noise_length': [16.1],
-#                     'noise_start': [0]
-#                 },
-#                 'sns_index': 1.767119
-#             }
-#         }
-#     }
 
 while True:
     Display.run(menu)
