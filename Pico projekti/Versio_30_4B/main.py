@@ -108,9 +108,9 @@ class Display:
 
     def scroll_list(self, id_list, list_name = ""):
         #scrolls a list. Alternative to update_cursor.
-        visible_lines = 5
-        first_index = 0
-        last_index = 0
+        visible_lines = 6
+        first_index = self.list_position
+        last_index = first_index + visible_lines-1
         len_list = len(id_list)
         if len(id_list) < visible_lines:
             visible_lines = len(id_list)
@@ -122,18 +122,23 @@ class Display:
             except:
                 print("Fifo is empty..")
         self.cursor_position = self.cursor_position + enc1_input
-        if self.cursor_position >= len(id_list)-visible_lines-1:
-            first_index = len_list-visible_lines
-            last_index = len_list-1
-        elif self.cursor_position < visible_lines:
-            first_index = 0
-            last_index = visible_lines-1
-        else:
-            first_index = self.cursor_position -2
-            last_index = self.cursor_position +2
-            
-
+        if self.cursor_position >= last_index:
+            first_index = self.cursor_position-4
+            last_index = self.cursor_position
+        elif self.cursor_position < first_index:
+            first_index = self.cursor_position
+            last_index = self.cursor_position+4
+        #else:
+        #    first_index = self.cursor_position -2
+        #    last_index = self.cursor_position +2
         self.list_position = first_index
+
+        if first_index < 0:
+            first_index = 0
+            last_index = first_index + visible_lines-1
+        elif last_index > len_list-1:
+            last_index = len_list-1
+            first_index = last_index - visible_lines+1
 
         if self.cursor_position > len_list-1:
             self.cursor_position = len_list-1
@@ -146,7 +151,7 @@ class Display:
 
     def render_list(self, id_list, first_index, last_index, list_name = "List name"):
         # a separate listdrawing function
-        print("render_list:", id_list,self.cursor_position)
+        #print("render_list:", id_list,self.cursor_position)
         oled.fill(0)
         oled.text(list_name,0,0,1)
         n = 1
@@ -625,19 +630,31 @@ class Display:
     #Measurement history
     def measurement_history_menu(self):
         header: str = "Measurements"
-
-        self.scroll_list(self.measurements, "Measurements")
-    
         button_input = button.get()
         rtm_button_input = rtm_button.get()
         return_button_input = return_button.get()
 
-        if button_input:
-            self.show_measurement(self.cursor_position)
-        elif rtm_button_input:
-            self.state = self.main_menu
-        elif return_button_input:
-            self.state = self.history_menu
+        if len(self.measurements) > 0:
+            self.scroll_list(self.responses, "Measurements")
+
+            button_input = button.get()
+            rtm_button_input = rtm_button.get()
+            return_button_input = return_button.get()
+
+            if button_input:
+                self.reset_inputs()
+                self.history_show_measurement(self.responses[self.cursor_position])
+            elif rtm_button_input:
+                self.state = self.main_menu
+            elif return_button_input:
+                self.state = self.history_menu
+        else:
+            oled.fill(0)
+            oled.text("No saved", 0, 9, 1)
+            oled.text("measurements.", 0, 18, 1)
+            oled.show()
+            if button_input or rtm_button_input or return_button_input:
+                self.state = self.history_menu()
         self.reset_inputs()
         time.sleep(self.cycle_time)
 
@@ -645,6 +662,10 @@ class Display:
     # Kubios history menu
     def kubios_history_menu(self):
         header: str = "Kubios results"
+        button_input = button.get()
+        rtm_button_input = rtm_button.get()
+        return_button_input = return_button.get()
+
         if len(self.responses) > 0:
             self.scroll_list(self.responses, "Kubios results")
 
@@ -666,12 +687,14 @@ class Display:
             oled.text("No saved Kubios", 0, 9, 1)
             oled.text("responses.", 0, 18, 1)
             oled.show()
+            if button_input or rtm_button_input or return_button_input:
+                self.state = self.history_menu()
         self.reset_inputs()
         time.sleep(self.cycle_time)
 
 ########################################
     # Measurement
-    def show_measurement(self, measurement_index):
+    def history_show_measurement(self, measurement_index):
         header: str = "Measurement"
         print(header)
         measurement = self.measurements[measurement_index]
