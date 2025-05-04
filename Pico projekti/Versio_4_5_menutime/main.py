@@ -200,7 +200,7 @@ class Display:
         time_str = ""
         try:
             date_time = self.rtc.datetime()
-            time_str = f"{date_time[4]}:{date_time[5]}:{date_time[6]}"
+            time_str = f"{date_time[4]:02}:{date_time[5]:02}:{date_time[6]:02}"
             print(time_str)
             return time_str
         except:
@@ -395,7 +395,7 @@ class Display:
     # Main menu
     def main_menu(self):
         time_str = self.get_time()
-        header: str = f"Main Menu  {time_str}"
+        header: str = f"Menu   {time_str}"
         print(header)
         text_lines: list[str] = [""]
         option_lines : list[str] = ["Measure HR", "Basic HRV", "Kubios HRV", "History"]
